@@ -1,0 +1,150 @@
+/* src/components/NavbarStyles.css */
+
+/* General Navbar Styling */
+.custom-navbar {
+    padding-top: 0.9rem;
+    padding-bottom: 0.9rem;
+    background: linear-gradient(90deg, #232526 0%, #414345 100%) !important; /* Dark gradient */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease-in-out;
+    border-bottom: 2px solid #f39c12; /* Accent border */
+  }
+  
+  .custom-navbar .navbar-brand {
+    font-size: 1.6rem; 
+    font-weight: 700;
+    color: #f39c12 !important; /* Bright accent for brand */
+    letter-spacing: 1px;
+    transition: color 0.3s ease;
+  }
+  
+  .custom-navbar .navbar-brand:hover {
+    color: #ffffff !important; 
+  }
+  
+  .custom-navbar .nav-link {
+    color: #e0e0e0 !important; /* Softer white for links */
+    font-weight: 500;
+    margin-left: 0.6rem;
+    margin-right: 0.6rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 5px;
+    transition: color 0.3s ease, background-color 0.3s ease, transform 0.2s ease;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+  }
+  
+  .custom-navbar .nav-link:hover {
+    color: #ffffff !important;
+    background-color: rgba(243, 156, 18, 0.2); /* Accent color with transparency */
+    transform: translateY(-2px);
+  }
+  .custom-navbar .nav-link.active { /* .active class needs to be applied by react-router NavLink or logic */
+    color: #f39c12 !important; /* Accent color for active link */
+    font-weight: 700;
+    background-color: rgba(243, 156, 18, 0.15);
+  }
+  
+  
+  /* User Info Styling */
+  .custom-navbar .user-info-link {
+    color: #e0e0e0 !important;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+  }
+  .custom-navbar .user-info-link:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .custom-navbar .user-info-link .user-icon {
+    margin-right: 10px;
+    color: #f39c12; /* Accent color for icon */
+    font-size: 1.3em; /* Slightly larger icon */
+  }
+  
+  /* Button Styling in Navbar */
+  .custom-navbar .btn-navbar-custom {
+    color: #f39c12;
+    border: 2px solid #f39c12;
+    background-color: transparent;
+    font-weight: 600;
+    padding: 0.5rem 1.2rem;
+    border-radius: 25px; /* Pill-shaped buttons */
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+  }
+  
+  .custom-navbar .btn-navbar-custom:hover {
+    background-color: #f39c12;
+    color: #232526; /* Dark text on hover */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(243, 156, 18, 0.3);
+  }
+  
+  .custom-navbar .btn-navbar-danger {
+    color: #e74c3c;
+    border: 2px solid #e74c3c;
+    background-color: transparent;
+    font-weight: 600;
+    padding: 0.5rem 1.2rem;
+    border-radius: 25px;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+  }
+  
+  .custom-navbar .btn-navbar-danger:hover {
+    background-color: #e74c3c;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+  }
+  
+  /* Specific for AdminNavbar (can be more distinct if needed) */
+  .admin-specific-navbar {
+    border-bottom: 2px solid #3498db; /* Different accent for admin */
+  }
+  .admin-specific-navbar .navbar-brand {
+      color: #3498db !important;
+  }
+  .admin-specific-navbar .navbar-brand:hover {
+      color: #ffffff !important;
+  }
+  .admin-specific-navbar .nav-link:hover {
+    background-color: rgba(52, 152, 219, 0.2);
+  }
+  .admin-specific-navbar .nav-link.active {
+    color: #3498db !important;
+    background-color: rgba(52, 152, 219, 0.15);
+  }
+  
+  
+  /* Ensure toggler icon is visible on dark backgrounds */
+  .navbar-dark .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28243, 156, 18, 0.9%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+  }
+  
+  .navbar-toggler {
+    border: 1px solid rgba(243, 156, 18, 0.5) !important;
+    padding: .35rem .75rem;
+  }
+  .navbar-toggler:focus {
+      box-shadow: 0 0 0 0.2rem rgba(243,156,18,.25);
+  }
+  
+  /* Add padding to body or main content container to prevent overlap with fixed navbar */
+  body {
+    padding-top: 80px; /* Adjust this based on your navbar's final height */
+  }
+  /* Or, apply this to specific page wrapper divs if 'body' is too general */
+  .page-content-wrapper {
+    padding-top: 80px; /* Example: 80px could be 5rem or specific height */
+  }
