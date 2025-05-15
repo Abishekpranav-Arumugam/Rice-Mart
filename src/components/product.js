@@ -1,3 +1,4 @@
+// src/components/Product.js
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -277,7 +278,8 @@ const Product = () => {
 
         {/* Order Form Modal ("Buy Now") */}
         {showForm && selectedProduct && (
-          <div className="fixed inset-0 z-50 flex justify-center items-center bg-black bg-opacity-60 p-4 overflow-y-auto">
+          // MODIFIED className to add top-16 positioning
+          <div className="fixed top-16 inset-x-0 bottom-0 z-[100] flex justify-center items-center bg-black bg-opacity-60 p-4 overflow-y-auto">
             <div className="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-md my-auto">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-semibold text-gray-800">Order: {selectedProduct.name}</h3>
@@ -313,8 +315,9 @@ const Product = () => {
 
         {/* Product Details Modal */}
         {showDetailsModal && selectedProductForDetails && detailedInfo && (
-          <div className="fixed inset-0 z-[60] flex justify-center items-center bg-black bg-opacity-75 p-4 overflow-y-auto">
-            <div className="bg-white p-6 sm:p-8 rounded-lg shadow-2xl w-full max-w-2xl my-auto max-h-[90vh] overflow-y-auto">
+          // MODIFIED className to add top-16 positioning
+          <div className="fixed top-16 inset-x-0 bottom-0 z-[100] flex justify-center items-center bg-black bg-opacity-75 p-4 overflow-y-auto">
+            <div className="bg-white p-6 sm:p-8 rounded-lg shadow-2xl w-full max-w-2xl my-auto max-h-[calc(100vh-8rem)] overflow-y-auto"> {/* Adjusted max-height slightly */}
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h2 className="text-3xl font-bold text-gray-800">{detailedInfo.name}</h2>
@@ -352,6 +355,7 @@ const Product = () => {
             </div>
           </div>
         )}
+
 
         <hr className="my-12 border-t border-gray-400" />
         <footer className="bg-gray-800 text-white text-center py-6 rounded-lg">

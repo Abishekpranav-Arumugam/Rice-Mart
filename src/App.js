@@ -18,6 +18,7 @@ import AboutUs from "./components/aboutus";
 import OrderHistory from "./components/ohistory";
 import AdminNavbar from "./components/adminnavbar";
 import StockHistory from "./components/StockHistory";
+import PopulateStock from "./components/PopulateStock";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
@@ -101,7 +102,8 @@ const AppRoutes = () => {
           path="/ohistory" 
           element={<><Home /><OrderHistory /></>} 
         />
-        <Route path="/stock" element={<StockHistory />} />
+        <Route path="/stock" element={<><AdminNavbar/><StockHistory /></>} />
+        <Route path="/populate-stock" element={<><AdminNavbar/><PopulateStock /></>} />
 
         <Route path="/" element={<Navigate to="/login" />} />
         {/* Catch-all route for undefined paths */}

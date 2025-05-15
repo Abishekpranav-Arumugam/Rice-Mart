@@ -60,10 +60,7 @@ const Admin = () => {
       // This PUT request to mark an order complete should also be secured.
       // If any admin can mark any order complete, you'd ideally send an admin token.
       // const token = await user.getIdToken(); // If admin needs to be authenticated for this action
-      // await axios.put(`http://localhost:5000/api/orders/${orderId}`, {}, { // Sending empty object as data if not needed
-      //   headers: { Authorization: `Bearer ${token}` }
-      // });
-      await axios.put(`http://localhost:5000/api/orders/${orderId}`); // Current unprotected version
+      await axios.put(`http://localhost:5000/api/orders/${orderId}`, { status: "Completed" }); // Send status in body
 
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
@@ -82,6 +79,32 @@ const Admin = () => {
     }
   };
 
+  // ADD THIS NEW FUNCTION TO HANDLE CANCELLATION
+  const handleCancel = async (orderId) => {
+    setError(null); // Clear previous errors
+    setSuccess(""); // Clear previous success
+    try {
+      // Send the status "Canceled" in the request body
+      await axios.put(`http://localhost:5000/api/orders/${orderId}`, { status: "Canceled" });
+
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order._id === orderId ? { ...order, status: "Canceled" } : order
+        )
+      );
+      setSuccess("Order status updated to canceled successfully.");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Admin: Error canceling order:", err);
+      if (err.response) {
+        setError(`Failed to cancel order: ${err.response.data.message || err.response.statusText || 'Server error'}`);
+      } else {
+        setError("Failed to cancel order. Please try again.");
+      }
+    }
+  };
+
+
   return (
     <Container className="mt-5 pt-4"> {/* Added Bootstrap margin-top utility */}
       <h2 className="my-4 text-center">ALL CUSTOMER ORDERS</h2> {/* Centered heading */}
@@ -98,7 +121,7 @@ const Admin = () => {
             <th>Customer Email</th>
             <th>Order Placed At</th>
             <th>Status</th>
-            <th>Action</th>
+            <th>Action</th> {/* Keep Action column */}
           </tr>
         </thead>
         <tbody>
@@ -129,21 +152,39 @@ const Admin = () => {
                 <td>{order.userDetails?.email || "N/A"}</td>
                 <td>{new Date(order.createdAt).toLocaleString()}</td>
                 <td>
-                  <span className={`badge bg-${order.status === "Completed" ? "success" : "warning"} text-dark`}>
-                    {order.status}
+                  {/* Updated Status Badge Rendering */}
+                  <span className={`badge bg-${
+                    order.status === "Completed" ? "success" :
+                    order.status === "Canceled" ? "danger" : // Red badge for Canceled
+                    "warning" // Default for 'Placed' or others
+                  } text-dark`}>
+                    {order.status || "Pending"} {/* Display status or Pending if null */}
                   </span>
                 </td>
                 <td>
-                  {order.status !== "Completed" ? (
-                    <Button
-                      variant="outline-success" // Changed to outline
-                      size="sm"
-                      onClick={() => handleComplete(order._id)}
-                    >
-                      Mark Completed
-                    </Button>
-                  ) : (
+                  {/* ADDED CONDITIONAL RENDERING FOR BUTTONS */}
+                  {order.status === "Completed" ? (
                     <span className="text-success fw-bold">Completed</span>
+                  ) : order.status === "Canceled" ? (
+                     <span className="text-danger fw-bold">Canceled</span> // Display Canceled status text
+                  ) : (
+                    <> {/* Use Fragment to hold multiple buttons */}
+                      <Button
+                        variant="outline-success"
+                        size="sm"
+                        onClick={() => handleComplete(order._id)}
+                        className="me-2" // Add margin to the right of Mark Completed button
+                      >
+                        Mark Completed
+                      </Button>
+                      <Button
+                        variant="outline-danger" // Use danger variant for Cancel button
+                        size="sm"
+                        onClick={() => handleCancel(order._id)} // Call the new handleCancel function
+                      >
+                        Cancel Order
+                      </Button>
+                    </>
                   )}
                 </td>
               </tr>
