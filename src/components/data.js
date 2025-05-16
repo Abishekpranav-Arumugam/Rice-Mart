@@ -1,15 +1,11 @@
-// data.js
-// Detailed information for each rice product
-
-// Import images if you want to display product image in the details modal as well
-// For now, we'll just focus on textual details.
-// import img1 from "./basmati.jpeg";
-// import img2 from "./Jasmine.jpeg";
-// ... etc.
+// src/components/data.js
+// Detailed information for each rice product.
+// The 'name' field MUST exactly match the product name stored in the backend database
+// (case-insensitively, as per Product.js logic) for details to appear in the modal.
 
 export const riceDetailsData = [
   {
-    id: 1, // Must match the ID in productsData
+    // id: 1, // This ID is no longer used for matching; matching is by name.
     name: "Basmati Rice",
     healthBenefits: [
       "Low in fat and cholesterol.",
@@ -36,7 +32,6 @@ export const riceDetailsData = [
     ]
   },
   {
-    id: 2,
     name: "Jasmine Rice",
     healthBenefits: [
       "Provides energy through carbohydrates.",
@@ -60,7 +55,6 @@ export const riceDetailsData = [
     ]
   },
   {
-    id: 3,
     name: "Red Rice",
     healthBenefits: [
       "Rich in antioxidants (anthocyanins).",
@@ -86,7 +80,6 @@ export const riceDetailsData = [
     ]
   },
   {
-    id: 4,
     name: "Mogra Rice",
     healthBenefits: [
       "Similar nutritional profile to Basmati, but as broken grains, might cook faster.",
@@ -107,7 +100,6 @@ export const riceDetailsData = [
     ]
   },
   {
-    id: 5,
     name: "Brown Rice",
     healthBenefits: [
       "Excellent source of dietary fiber.",
@@ -133,7 +125,6 @@ export const riceDetailsData = [
     ]
   },
   {
-    id: 6,
     name: "Black Rice",
     healthBenefits: [
       "Highest in antioxidants (anthocyanins) among all rice types.",
@@ -158,7 +149,6 @@ export const riceDetailsData = [
     ]
   },
   {
-    id: 7,
     name: "Sona Masuri Rice",
     healthBenefits: [
       "Lower in calories and starch compared to some other white rices.",
@@ -181,7 +171,6 @@ export const riceDetailsData = [
     ]
   },
   {
-    id: 8,
     name: "Ambemohar Rice",
     healthBenefits: [
       "Distinct aroma of mango blossoms.",
@@ -204,8 +193,7 @@ export const riceDetailsData = [
     ]
   },
   {
-    id: 9,
-    name: "Kala Jeera Rice (Jeerakasala)",
+    name: "Kala Jeera Rice (Jeerakasala)", // Ensure this name matches the one in the backend. Note: some previous files might just say "Kala Jeera Rice"
     healthBenefits: [
       "Small aromatic grains, easy to digest.",
       "Used in traditional Ayurvedic preparations."
@@ -226,7 +214,6 @@ export const riceDetailsData = [
     ]
   },
   {
-    id: 10,
     name: "Bamboo Rice",
     healthBenefits: [
       "Claimed to be rich in protein and fiber.",
@@ -249,7 +236,6 @@ export const riceDetailsData = [
     ]
   },
   {
-    id: 11,
     name: "Premium Idly Rice",
     healthBenefits: [
       "Specifically processed (parboiled) for idli making.",
@@ -271,7 +257,6 @@ export const riceDetailsData = [
     ]
   },
   {
-    id: 12,
     name: "Crispy Dosa Rice",
     healthBenefits: [
       "Raw rice chosen for its ability to make crispy dosas.",
@@ -292,7 +277,6 @@ export const riceDetailsData = [
     ]
   },
   {
-    id: 13,
     name: "Seeraga Samba Rice",
     healthBenefits: [
       "Small, flavorful grains.",

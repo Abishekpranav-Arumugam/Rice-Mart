@@ -1,189 +1,225 @@
-// Admin.js
+// src/components/Admin.js
 import React, { useEffect, useState } from "react";
-import { Table, Container, Alert, Button } from "react-bootstrap";
+import { Table, Container, Alert, Button, Form, Row, Col } from "react-bootstrap";
 import axios from "axios";
-// If you implement admin auth later, you might need useAuth here too.
-// import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const Admin = () => {
-  const [orders, setOrders] = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
+  const [filteredOrders, setFilteredOrders] = useState([]);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState("");
-  // const { user } = useAuth(); // If admin auth needed for fetching/updating
+  const { user } = useAuth();
+
+  // Filter states
+  const [selectedStatus, setSelectedStatus] = useState("All");
+  const [fromDate, setFromDate] = useState(null); // Renamed from selectedDate
+  const [toDate, setToDate] = useState(null);   // New state for "To Date"
 
   useEffect(() => {
     const fetchOrders = async () => {
-      setError(null); // Clear previous errors
+      setError(null);
       try {
-        // **** MODIFIED ENDPOINT ****
-        // Call the new admin-specific endpoint that returns all orders
         const response = await axios.get("http://localhost:5000/api/admin/all-orders");
-        // For admin auth later, you might add headers:
-        // const token = await user.getIdToken();
-        // const response = await axios.get("http://localhost:5000/api/admin/all-orders", {
-        //   headers: { Authorization: `Bearer ${token}` }
-        // });
-
         if (Array.isArray(response.data)) {
-          setOrders(response.data);
+          setAllOrders(response.data);
+          setFilteredOrders(response.data);
         } else {
-          console.error("Admin: Unexpected response format for all orders:", response.data);
-          setOrders([]);
+          console.error("Admin: Unexpected response format:", response.data);
           setError("Received unexpected data format from server.");
+          setAllOrders([]); setFilteredOrders([]);
         }
       } catch (err) {
         console.error("Admin: Error fetching all orders:", err);
-        if (err.response) {
-          // The request was made and the server responded with a status code
-          // that falls out of the range of 2xx
-          setError(`Failed to fetch orders: ${err.response.data.message || err.response.statusText || 'Server error'}`);
-        } else if (err.request) {
-          // The request was made but no response was received
-          setError("Failed to fetch orders: No response from server. Is it running?");
-        } else {
-          // Something happened in setting up the request that triggered an Error
-          setError("Failed to fetch orders: Error setting up request.");
-        }
-        setOrders([]); // Clear orders on error
+        setError(err.response?.data?.message || err.response?.statusText || "Failed to fetch orders.");
+        setAllOrders([]); setFilteredOrders([]);
       }
     };
-
     fetchOrders();
-  }, []); // Removed `user` from dependency array if not used for fetching yet
+  }, []);
 
-  // Mark order as completed
-  const handleComplete = async (orderId) => {
-    setError(null); // Clear previous errors
-    setSuccess(""); // Clear previous success
-    try {
-      // **** POTENTIAL SECURITY ISSUE FOR PUT REQUEST ****
-      // This PUT request to mark an order complete should also be secured.
-      // If any admin can mark any order complete, you'd ideally send an admin token.
-      // const token = await user.getIdToken(); // If admin needs to be authenticated for this action
-      await axios.put(`http://localhost:5000/api/orders/${orderId}`, { status: "Completed" }); // Send status in body
+  useEffect(() => {
+    let tempOrders = [...allOrders];
 
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order._id === orderId ? { ...order, status: "Completed" } : order
-        )
-      );
-      setSuccess("Order status updated to completed successfully.");
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error("Admin: Error updating order status:", err);
-      if (err.response) {
-        setError(`Failed to update order status: ${err.response.data.message || err.response.statusText || 'Server error'}`);
-      } else {
-        setError("Failed to update order status. Please try again.");
-      }
+    if (selectedStatus !== "All") {
+      tempOrders = tempOrders.filter(order => order.status === selectedStatus);
     }
+
+    if (fromDate) {
+      tempOrders = tempOrders.filter(order => new Date(order.createdAt) >= new Date(fromDate.setHours(0,0,0,0))); // Start of fromDate
+    }
+    if (toDate) {
+      tempOrders = tempOrders.filter(order => new Date(order.createdAt) <= new Date(toDate.setHours(23,59,59,999))); // End of toDate
+    }
+
+    setFilteredOrders(tempOrders);
+  }, [selectedStatus, fromDate, toDate, allOrders]);
+
+  const getAuthToken = async () => {
+    // ... (same as before)
+    if (!user) {
+      setError("Admin actions require authentication. Please log in as admin.");
+      return null;
+    }
+    try { return await user.getIdToken(); }
+    catch (tokenError) { setError("Failed to get authentication token."); return null;}
   };
 
-  // ADD THIS NEW FUNCTION TO HANDLE CANCELLATION
-  const handleCancel = async (orderId) => {
-    setError(null); // Clear previous errors
-    setSuccess(""); // Clear previous success
+  const handleAdminStatusUpdate = async (orderId, newStatus) => {
+    // ... (same as before)
+    setError(null); setSuccess("");
+    const token = await getAuthToken();
+    if (!token) return;
     try {
-      // Send the status "Canceled" in the request body
-      await axios.put(`http://localhost:5000/api/orders/${orderId}`, { status: "Canceled" });
-
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order._id === orderId ? { ...order, status: "Canceled" } : order
-        )
-      );
-      setSuccess("Order status updated to canceled successfully.");
+      await axios.put(`http://localhost:5000/api/orders/${orderId}`, { status: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
+      setAllOrders(prevOrders => prevOrders.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
+      setSuccess(`Order ${orderId} status updated to ${newStatus.toLowerCase()}.`);
       setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error("Admin: Error canceling order:", err);
-      if (err.response) {
-        setError(`Failed to cancel order: ${err.response.data.message || err.response.statusText || 'Server error'}`);
-      } else {
-        setError("Failed to cancel order. Please try again.");
-      }
-    }
+    } catch (err) { setError(err.response?.data?.message || `Failed to update to ${newStatus}.`);}
+  };
+
+  const handleComplete = (orderId) => handleAdminStatusUpdate(orderId, "Completed");
+  const handleCancelByAdmin = (orderId) => handleAdminStatusUpdate(orderId, "Canceled");
+
+  const countFilteredOrdersByStatus = (status) => {
+    return filteredOrders.filter(order => 
+        status === "Completed/Delivered" ? (order.status === "Completed" || order.status === "Delivered") : order.status === status
+    ).length;
   };
 
 
   return (
-    <Container className="mt-5 pt-4"> {/* Added Bootstrap margin-top utility */}
-      <h2 className="my-4 text-center">ALL CUSTOMER ORDERS</h2> {/* Centered heading */}
+    <Container className="mt-5 pt-4">
+      <h2 className="my-4 text-center">ALL CUSTOMER ORDERS</h2>
       {error && <Alert variant="danger" onClose={() => setError(null)} dismissible>{error}</Alert>}
       {success && <Alert variant="success" onClose={() => setSuccess("")} dismissible>{success}</Alert>}
-      <Table striped bordered hover responsive className="shadow-sm"> {/* Added responsive and shadow */}
-        <thead className="table-dark"> {/* Darker header */}
+
+      {/* Filter Controls in a straight line */}
+      <Form className="mb-4 p-3 bg-light border rounded-lg shadow-sm">
+        <Row className="align-items-end gy-2 gx-3"> {/* gy-2 for vertical gap on small screens, gx-3 for horizontal */}
+          <Col xs={12} md={4} lg={3}>
+            <Form.Group controlId="adminStatusFilter">
+              <Form.Label className="text-xs sm:text-sm font-medium text-gray-700 mb-1">Status:</Form.Label>
+              <Form.Select 
+                value={selectedStatus} 
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="form-select-sm text-xs sm:text-sm"
+              >
+                <option value="All">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Placed">Placed</option>
+                <option value="Shipped">Shipped</option>
+                <option value="Completed">Completed/Delivered</option>
+                <option value="Canceled">Canceled</option>
+              </Form.Select>
+            </Form.Group>
+          </Col>
+          <Col xs={12} md={4} lg={3}>
+            <Form.Group controlId="adminFromDateFilter">
+              <Form.Label className="text-xs sm:text-sm font-medium text-gray-700 mb-1">From Date (Placed):</Form.Label>
+              <DatePicker
+                selected={fromDate}
+                onChange={(date) => setFromDate(date)}
+                selectsStart
+                startDate={fromDate}
+                endDate={toDate}
+                className="form-control form-control-sm text-xs sm:text-sm"
+                placeholderText="Start date"
+                isClearable
+                dateFormat="MM/dd/yyyy"
+              />
+            </Form.Group>
+          </Col>
+          <Col xs={12} md={4} lg={3}>
+            <Form.Group controlId="adminToDateFilter">
+              <Form.Label className="text-xs sm:text-sm font-medium text-gray-700 mb-1">To Date (Placed):</Form.Label>
+              <DatePicker
+                selected={toDate}
+                onChange={(date) => setToDate(date)}
+                selectsEnd
+                startDate={fromDate}
+                endDate={toDate}
+                minDate={fromDate} // Prevent selecting "to date" before "from date"
+                className="form-control form-control-sm text-xs sm:text-sm"
+                placeholderText="End date"
+                isClearable
+                dateFormat="MM/dd/yyyy"
+              />
+            </Form.Group>
+          </Col>
+           <Col xs={12} lg={3} className="pt-2 pt-lg-0"> {/* Added pt-2 for small screens, reset for lg */}
+            {(fromDate || toDate || selectedStatus !== "All") && (
+                 <div className="text-xs text-gray-600 text-start"> {/* Aligned summary to start */}
+                    Showing: {filteredOrders.length} orders <br/>
+                    {selectedStatus === "All" && `(Completed: ${countFilteredOrdersByStatus("Completed/Delivered")}, Canceled: ${countFilteredOrdersByStatus("Canceled")})`}
+                    {selectedStatus !== "All" && `(${selectedStatus}: ${filteredOrders.length})`}
+                 </div>
+            )}
+          </Col>
+        </Row>
+      </Form>
+
+      <Table striped bordered hover responsive className="shadow-sm">
+        {/* ... Table thead and tbody remain the same as your previous Admin.js ... */}
+        <thead className="table-dark">
           <tr>
             <th>Order ID</th>
             <th>Product(s)</th>
-            <th>Total Quantity</th>
-            <th>Total Price</th>
+            <th>Qty</th>
+            <th>Price</th>
             <th>Customer Name</th>
-            <th>Customer Email</th>
-            <th>Order Placed At</th>
+            <th>Email</th>
+            <th>Placed At</th>
             <th>Status</th>
-            <th>Action</th> {/* Keep Action column */}
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
-          {orders.length > 0 ? (
-            orders.map((order) => (
+          {filteredOrders.length > 0 ? (
+            filteredOrders.map((order) => (
               <tr key={order._id}>
-                <td><code>{order._id}</code></td> {/* Use code tag for ID */}
+                <td><code>{order._id}</code></td>
                 <td>
                   {order.cartItems && order.cartItems.length > 0 ? (
-                    <ul className="list-unstyled mb-0">
+                    <ul className="list-unstyled mb-0 small">
                       {order.cartItems.map((item, idx) => (
-                        <li key={idx} className={idx > 0 ? "mt-1 pt-1 border-top" : ""}>
-                          {item.name} (x{item.quantity}) - ₹{item.price?.toFixed(2)}
+                        <li key={idx} className={idx > 0 ? "mt-1 pt-1 border-top text-nowrap" : "text-nowrap"}>
+                          {item.name} (x{item.quantity || 1})
+                          <br/> <span className="text-muted">₹{item.price?.toFixed(2)}</span>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    order.productName || "N/A"
+                    <span className="text-nowrap">{order.productName || "N/A"}</span>
                   )}
                 </td>
-                <td className="text-center"> {/* Centered quantity */}
-                  {order.cartItems && order.cartItems.length > 0
-                    ? order.cartItems.reduce((sum, item) => sum + item.quantity, 0)
-                    : order.quantity || 0}
+                <td className="text-center">
+                  {order.cartItems?.reduce((sum, item) => sum + (item.quantity || 0), 0) || order.quantity || 0}
                 </td>
-                <td className="text-end">₹{order.totalPrice?.toFixed(2)}</td> {/* Right-aligned price */}
-                <td>{order.userDetails?.name || "N/A"}</td>
-                <td>{order.userDetails?.email || "N/A"}</td>
+                <td className="text-end">₹{order.totalPrice?.toFixed(2)}</td>
+                <td className="text-nowrap">{order.userDetails?.name || "N/A"}</td>
+                <td className="text-nowrap">{order.userDetails?.email || "N/A"}</td>
                 <td>{new Date(order.createdAt).toLocaleString()}</td>
                 <td>
-                  {/* Updated Status Badge Rendering */}
                   <span className={`badge bg-${
-                    order.status === "Completed" ? "success" :
-                    order.status === "Canceled" ? "danger" : // Red badge for Canceled
-                    "warning" // Default for 'Placed' or others
+                    order.status === "Completed" || order.status === "Delivered" ? "success" :
+                    order.status === "Canceled" ? "danger" :
+                    "warning" 
                   } text-dark`}>
-                    {order.status || "Pending"} {/* Display status or Pending if null */}
+                    {order.status || "Pending"}
                   </span>
                 </td>
                 <td>
-                  {/* ADDED CONDITIONAL RENDERING FOR BUTTONS */}
-                  {order.status === "Completed" ? (
+                  {(order.status === "Completed" || order.status === "Delivered") ? (
                     <span className="text-success fw-bold">Completed</span>
                   ) : order.status === "Canceled" ? (
-                     <span className="text-danger fw-bold">Canceled</span> // Display Canceled status text
+                     <span className="text-danger fw-bold">Canceled</span>
                   ) : (
-                    <> {/* Use Fragment to hold multiple buttons */}
-                      <Button
-                        variant="outline-success"
-                        size="sm"
-                        onClick={() => handleComplete(order._id)}
-                        className="me-2" // Add margin to the right of Mark Completed button
-                      >
-                        Mark Completed
-                      </Button>
-                      <Button
-                        variant="outline-danger" // Use danger variant for Cancel button
-                        size="sm"
-                        onClick={() => handleCancel(order._id)} // Call the new handleCancel function
-                      >
-                        Cancel Order
-                      </Button>
+                    <>
+                      <Button variant="outline-success" size="sm" onClick={() => handleComplete(order._id)} className="me-2 mb-1" disabled={!user} > Mark Comp. </Button>
+                      <Button variant="outline-danger" size="sm" onClick={() => handleCancelByAdmin(order._id)} className="mb-1" disabled={!user} > Cancel </Button>
                     </>
                   )}
                 </td>
@@ -191,8 +227,8 @@ const Admin = () => {
             ))
           ) : (
             <tr>
-              <td colSpan="9" className="text-center p-4"> {/* Increased colspan */}
-                No orders found.
+              <td colSpan="9" className="text-center p-4">
+                { allOrders.length === 0 && !error ? "No orders found." : "No orders match your filter criteria." }
               </td>
             </tr>
           )}

@@ -1,20 +1,44 @@
 // src/components/PopulateStock.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Added useEffect
 import { Form, Button, Container, Row, Col, Card, Alert } from 'react-bootstrap';
 import { toast } from 'react-toastify';
-import { productsData } from '../data/productsData'; // Import the shared product data
-import { useAuth } from '../context/AuthContext'; // To get the auth token
+// REMOVE: import { productsData } from '../data/productsData';
+import { useAuth } from '../context/AuthContext';
 
 const PopulateStock = () => {
   const [selectedRiceName, setSelectedRiceName] = useState('');
   const [quantityToAdd, setQuantityToAdd] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
-  const { user } = useAuth(); // For getting the Firebase ID token
+  // const [message, setMessage] = useState({ type: '', text: '' }); // Replaced by toast for success/error
+  
+  const [availableRiceVarieties, setAvailableRiceVarieties] = useState([]);
+  const [isLoadingVarieties, setIsLoadingVarieties] = useState(true);
+
+  const { user } = useAuth();
+
+  // Fetch rice varieties for the dropdown
+  useEffect(() => {
+    const fetchVarieties = async () => {
+      setIsLoadingVarieties(true);
+      try {
+        const response = await fetch('http://localhost:5000/api/riceproducts');
+        if (!response.ok) throw new Error('Failed to fetch rice varieties');
+        const data = await response.json();
+        setAvailableRiceVarieties(data.map(p => ({ id: p._id, name: p.name }))); // Store id and name
+      } catch (error) {
+        console.error('Error fetching rice varieties for stock population:', error);
+        toast.error('Could not load rice varieties.');
+        setAvailableRiceVarieties([]); // Ensure it's an array on error
+      } finally {
+        setIsLoadingVarieties(false);
+      }
+    };
+    fetchVarieties();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage({ type: '', text: '' }); // Clear previous messages
+    // setMessage({ type: '', text: '' }); // Clear previous messages // Replaced by toast
 
     if (!selectedRiceName) {
       toast.error('Please select a rice variety.');
@@ -29,12 +53,12 @@ const PopulateStock = () => {
     setIsLoading(true);
 
     try {
-      const idToken = await user.getIdToken(); // Get Firebase ID token
+      const idToken = await user.getIdToken();
       const response = await fetch('http://localhost:5000/api/stocks/populate', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`, // Include token for backend auth (if implemented)
+          'Authorization': `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           name: selectedRiceName,
@@ -60,7 +84,7 @@ const PopulateStock = () => {
   };
 
   return (
-    <Container className="mt-5 pt-5"> {/* Added pt-5 for spacing below navbar */}
+    <Container className="mt-5 pt-5">
       <Row className="justify-content-center">
         <Col md={8} lg={6}>
           <Card className="shadow-lg">
@@ -68,11 +92,7 @@ const PopulateStock = () => {
               Populate Rice Stock
             </Card.Header>
             <Card.Body>
-              {message.text && (
-                <Alert variant={message.type === 'success' ? 'success' : 'danger'}>
-                  {message.text}
-                </Alert>
-              )}
+              {/* {message.text && ( Removed message state for Alert ) } */}
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3" controlId="riceSelect">
                   <Form.Label>Select Rice Variety</Form.Label>
@@ -81,9 +101,12 @@ const PopulateStock = () => {
                     value={selectedRiceName}
                     onChange={(e) => setSelectedRiceName(e.target.value)}
                     required
+                    disabled={isLoadingVarieties || availableRiceVarieties.length === 0}
                   >
-                    <option value="">-- Select Rice --</option>
-                    {productsData.map((rice) => (
+                    <option value="">
+                      {isLoadingVarieties ? "Loading varieties..." : availableRiceVarieties.length === 0 ? "No varieties available" : "-- Select Rice --"}
+                    </option>
+                    {availableRiceVarieties.map((rice) => (
                       <option key={rice.id} value={rice.name}>
                         {rice.name}
                       </option>
@@ -91,6 +114,7 @@ const PopulateStock = () => {
                   </Form.Select>
                 </Form.Group>
 
+                {/* ... rest of the form (quantity, button) ... */}
                 <Form.Group className="mb-4" controlId="quantityInput">
                   <Form.Label>Quantity to Add (kg)</Form.Label>
                   <Form.Control
@@ -104,7 +128,7 @@ const PopulateStock = () => {
                 </Form.Group>
 
                 <div className="d-grid">
-                  <Button variant="success" type="submit" disabled={isLoading}>
+                  <Button variant="success" type="submit" disabled={isLoading || isLoadingVarieties}>
                     {isLoading ? 'Populating...' : 'Populate Stock'}
                   </Button>
                 </div>

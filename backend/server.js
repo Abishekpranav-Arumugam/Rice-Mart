@@ -6,6 +6,7 @@ const cors = require('cors');
 const connectDB = require('./config/db'); // Import the connectDB function
 const orderRoutes = require('./routes/orderRoutes'); // Import your order routes
 const stockRoutes = require('./routes/stockRoutes'); // Import your stock routes
+const riceProductRoutes = require('./routes/riceProductRoutes');
 
 // Initialize Express app
 const app = express();
@@ -27,7 +28,7 @@ app.use(cors({
 // API Routes
 app.use('/api', orderRoutes);         // Assuming orderRoutes handles things like /api/orders
 app.use('/api/stocks', stockRoutes);
-
+app.use('/api', riceProductRoutes);
 // Define a simple root route for testing if the server is up
 app.get('/', (req, res) => {
   res.send('RiceShop API is running!');

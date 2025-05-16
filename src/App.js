@@ -19,8 +19,10 @@ import OrderHistory from "./components/ohistory";
 import AdminNavbar from "./components/adminnavbar";
 import StockHistory from "./components/StockHistory";
 import PopulateStock from "./components/PopulateStock";
+import ManageRiceProducts from './components/ManageRiceProducts';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
 
@@ -58,7 +60,7 @@ const AppRoutes = () => {
       />
       <Navbar />
       
-      {!["/login", "/signup", "/adminlogin", "/admin", "/ohistory"].includes(location.pathname) && <Cart />}
+      {!["/login", "/signup", "/adminlogin", "/admin", "/ohistory", "/populate-stock","/manage-rice"].includes(location.pathname) && <Cart />}
 
 
       <Routes>
@@ -78,6 +80,7 @@ const AppRoutes = () => {
           path="/admin" 
           element={<><AdminNavbar/><Admin /></>} 
         />
+          <Route path="/manage-rice" element={<PrivateRoute><AdminNavbar/><ManageRiceProducts /></PrivateRoute>} /> 
         <Route
           path="/dashboard"
           element={

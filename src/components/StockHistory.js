@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Bar } from 'react-chartjs-2'; // Bar component can render 'line' type
 import GaugeChart from 'react-gauge-chart';
+import { format, parseISO } from 'date-fns'; // Correct
 import { ResponsiveTreeMap } from '@nivo/treemap';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, LineElement, PointElement
