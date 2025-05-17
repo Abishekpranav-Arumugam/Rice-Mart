@@ -55,9 +55,7 @@ const AdminNavbar = () => {
             <Nav.Link href="/stock">
               Stock Overview
             </Nav.Link>
-            <Nav.Link href="/populate-stock">
-              Populate Stock
-            </Nav.Link>
+        
             <Nav.Link href="/manage-rice"> {/* <<<< NEW LINK */}
               Manage Rice Products
             </Nav.Link>

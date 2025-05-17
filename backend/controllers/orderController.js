@@ -1,6 +1,10 @@
 // D:\Rice Mart\Consultancy-Project\exp-10\backend\controllers\orderController.js
 const Order = require('../models/Order'); // Adjust path if necessary
 const Stock = require('../models/Stock'); // <<<--- ADDED: Import Stock model
+const { sendLowStockNotification } = require('../services/emailService'); // Import email service
+
+const LOW_STOCK_THRESHOLD = 50; // Define the threshold
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL; // Get admin email from .env for notifications
 
 const createOrder = async (req, res) => {
   try {
@@ -33,33 +37,30 @@ const createOrder = async (req, res) => {
       totalPrice: totalPrice,
       quantity: quantity,       // if single product order
       userDetails: {
-        // **CRITICAL FOR ISOLATION: Use the email from the VERIFIED TOKEN**
         email: authenticatedUserEmail,
-        // Use the name, phone, address submitted by the user in the form
         name: formSubmittedDetails.name,
         phone: formSubmittedDetails.phone,
         address: formSubmittedDetails.address,
       },
-      cartItems: cartItems || [], // Handle cases for direct product purchase vs. cart checkout
-      userId: authenticatedUserId, // Optional: Store the Firebase UID for a robust link
-      status: 'Pending', // Default status for new orders
-      // createdAt is handled by Mongoose timestamps in your schema if you have { timestamps: true }
+      cartItems: cartItems || [], 
+      userId: authenticatedUserId, 
+      status: 'Pending', 
     });
 
     await newOrder.save();
 
     console.log(`Order ${newOrder._id} created successfully for user: ${authenticatedUserEmail}`);
 
-    // --- START: NEW stock update logic integrated ---
-    console.log(`Initiating stock update check for order ${newOrder._id}`);
-    try { // Added try/catch specifically for stock updates to avoid breaking order confirmation if stock update fails
-      if (newOrder && newOrder.cartItems && newOrder.cartItems.length > 0) {
-          // Create an array of update operations for bulkWrite
+    // --- START: Stock update and low stock check logic ---
+    console.log(`Initiating stock update for order ${newOrder._id}`);
+    let productNamesForStockCheck = []; 
+
+    try { 
+      if (newOrder.cartItems && newOrder.cartItems.length > 0) {
+          productNamesForStockCheck = newOrder.cartItems.map(item => item.name);
           const stockUpdateOperations = newOrder.cartItems.map(item => ({
               updateOne: {
-                  filter: { name: item.name }, // Find stock item by name
-                  // Use $inc to decrement the 'available' field by the quantity ordered
-                  // Ensure item.quantity is a valid number
+                  filter: { name: item.name }, 
                   update: { $inc: { available: -Number(item.quantity || 0) } }
               }
           }));
@@ -68,33 +69,47 @@ const createOrder = async (req, res) => {
               const bulkWriteResult = await Stock.bulkWrite(stockUpdateOperations);
               console.log(`Stock levels updated for cart items in order ${newOrder._id}. Result:`, bulkWriteResult);
           }
-      } else if (newOrder && newOrder.productName && newOrder.quantity > 0) {
-          // Handle stock update for a single product order
+      } else if (newOrder.productName && newOrder.quantity > 0) {
+          productNamesForStockCheck.push(newOrder.productName);
           const stockUpdateResult = await Stock.updateOne(
-              { name: newOrder.productName }, // Find stock item by name
-              // Use $inc to decrement 'available' by the quantity ordered
+              { name: newOrder.productName }, 
               { $inc: { available: -Number(newOrder.quantity || 0) } }
           );
           console.log(`Stock level updated for single product order ${newOrder._id}. Result:`, stockUpdateResult);
       } else {
-          console.log(`No cart items or single product info found for stock update in order ${newOrder._id}.`);
+          console.log(`No cart items or single product info for stock update in order ${newOrder._id}.`);
       }
+
+      // --- Check for low stock after updates ---
+      if (productNamesForStockCheck.length > 0) {
+        console.log('Checking final stock levels for:', productNamesForStockCheck.join(', '));
+        const updatedStocks = await Stock.find({ name: { $in: productNamesForStockCheck } }).lean();
+        
+        for (const stockItem of updatedStocks) {
+          console.log(`Final stock for ${stockItem.name}: Available = ${stockItem.available} kg`);
+          if (stockItem.available <= LOW_STOCK_THRESHOLD) {
+            console.log(`LOW STOCK DETECTED for ${stockItem.name} (${stockItem.available}kg). Sending notification.`);
+            // Intentionally not awaiting sendLowStockNotification to avoid blocking the order response
+            sendLowStockNotification(stockItem.name, stockItem.available, ADMIN_EMAIL)
+              .catch(emailError => console.error(`Error sending low stock email for ${stockItem.name}:`, emailError));
+          }
+        }
+      }
+      // --- End low stock check ---
+
     } catch(stockUpdateError) {
-        // Log the error but continue to confirm order to the user
-        console.error(`ERROR updating stock for order ${newOrder._id}:`, stockUpdateError.message, stockUpdateError.stack);
-        // Potentially add more robust error handling/logging here (e.g., notify admin)
+        console.error(`ERROR updating stock or checking low stock for order ${newOrder._id}:`, stockUpdateError.message, stockUpdateError.stack);
     }
-    // --- END: NEW stock update logic integrated ---
+    // --- END: Stock update and low stock check logic ---
 
 
-    // Respond success for order creation, even if stock update had an issue (logged above)
     res.status(201).json({
-      message: 'Order placed successfully', // Keeping message simple for user
+      message: 'Order placed successfully', 
       orderId: newOrder._id,
       order: newOrder,
     });
 
-  } catch (error) { // This catches errors from newOrder.save() or other initial parts
+  } catch (error) { 
     console.error("Error in createOrder controller (before or during order save):", error);
     res.status(500).json({ message: 'Server error while creating order', error: error.message });
   }
@@ -139,7 +154,6 @@ const getStockSummary = async (req, res) => { // Note: req, res params may not b
 };
 
 
-// Update module.exports - already includes both as per your last code version
 module.exports = {
   createOrder,
   getStockSummary

@@ -281,7 +281,7 @@ const OrderHistory = () => {
                          ) : order.status === 'Completed' || order.status === 'Delivered' ? (
                              <span className="text-green-600">Delivered</span>
                          ) : (
-                            <span className="text-gray-500">Cancellation Window Passed</span> // Text when past the 48-hour window
+                            <span className="text-gray-500">Cancel button disabled</span> // Text when past the 48-hour window
                          )}
                        </td>
                     </tr>

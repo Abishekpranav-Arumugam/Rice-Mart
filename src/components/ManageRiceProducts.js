@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
-import { Table, Button, Modal, Form, Container, Row, Col, Card, Alert } from 'react-bootstrap';
-import { FaEdit, FaTrashAlt, FaPlus } from 'react-icons/fa';
+import { Table, Button, Modal, Form, Container, Row, Col, Card, Alert, Badge } from 'react-bootstrap'; // Added Badge
+import { FaEdit, FaTrashAlt, FaPlus, FaBoxes } from 'react-icons/fa'; // Added FaBoxes
 
 const ManageRiceProducts = () => {
   const { user } = useAuth();
@@ -11,22 +11,30 @@ const ManageRiceProducts = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const [showModal, setShowModal] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false); // For Add/Edit Product
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentProduct, setCurrentProduct] = useState({
     name: '', description: '', originalPrice: '', discountPercentage: '0', imageUrl: '', category: 'General',
   });
 
-  const API_URL = 'http://localhost:5000/api/riceproducts';
+  // New state for "Add Stock" Modal
+  const [showAddStockModal, setShowAddStockModal] = useState(false);
+  const [productForStockUpdate, setProductForStockUpdate] = useState(null);
+  const [quantityToPopulate, setQuantityToPopulate] = useState('');
+  const [isPopulatingStock, setIsPopulatingStock] = useState(false);
 
-  // fetchProducts, useEffect for fetch (no changes)
+
+  const API_URL_PRODUCTS = 'http://localhost:5000/api/riceproducts';
+  const API_URL_STOCKS_POPULATE = 'http://localhost:5000/api/stocks/populate';
+
+
   const fetchProducts = async () => {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch(API_URL);
+      const response = await fetch(API_URL_PRODUCTS);
       if (!response.ok) throw new Error('Failed to fetch products');
-      const data = await response.json();
+      const data = await response.json(); // Data now includes 'available' and 'effectivePrice'
       setProducts(data);
     } catch (err) {
       setError(err.message);
@@ -41,113 +49,95 @@ const ManageRiceProducts = () => {
   }, []);
 
 
-  // handleInputChange, resetForm, handleShowAddModal, handleShowEditModal, handleCloseModal (no changes)
-  const handleInputChange = (e) => {
+  const handleProductInputChange = (e) => {
     const { name, value } = e.target;
     setCurrentProduct({ ...currentProduct, [name]: value });
   };
 
-  const resetForm = () => {
+  const resetProductForm = () => {
     setCurrentProduct({ name: '', description: '', originalPrice: '', discountPercentage: '0', imageUrl: '', category: 'General' });
   };
 
-  const handleShowAddModal = () => {
+  const handleShowAddProductModal = () => {
     setIsEditMode(false);
-    resetForm();
-    setShowModal(true);
+    resetProductForm();
+    setShowProductModal(true);
   };
 
-  const handleShowEditModal = (product) => {
+  const handleShowEditProductModal = (product) => {
     setIsEditMode(true);
     setCurrentProduct({
         ...product,
         originalPrice: product.originalPrice.toString(),
         discountPercentage: (product.discountPercentage || 0).toString()
     });
-    setShowModal(true);
+    setShowProductModal(true);
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setError('');
+  const handleCloseProductModal = () => {
+    setShowProductModal(false);
+    setError(''); // Clear errors when closing modal
   };
 
-  // handleSubmit, handleDelete (no changes in logic regarding imageUrl here)
-   const handleSubmit = async (e) => {
+  const handleProductSubmit = async (e) => {
     e.preventDefault();
     if (!user) {
       toast.error("Authentication required.");
       return;
     }
-    setError('');
+    setError(''); // Clear previous specific form errors
 
     const productData = {
       name: currentProduct.name,
       description: currentProduct.description,
       originalPrice: parseFloat(currentProduct.originalPrice),
       discountPercentage: parseFloat(currentProduct.discountPercentage || 0),
-      imageUrl: currentProduct.imageUrl, // This will now be a full URL
+      imageUrl: currentProduct.imageUrl,
       category: currentProduct.category,
     };
 
+    // --- Validations (copied from your original, ensure they are robust) ---
     if (isNaN(productData.originalPrice) || productData.originalPrice <= 0) {
-      setError("Original Price must be a positive number.");
-      toast.error("Original Price must be a positive number.");
-      return;
+      setError("Original Price must be a positive number."); toast.error("Original Price must be a positive number."); return;
     }
     if (isNaN(productData.discountPercentage) || productData.discountPercentage < 0 || productData.discountPercentage > 100) {
-      setError("Discount Percentage must be between 0 and 100.");
-      toast.error("Discount Percentage must be between 0 and 100.");
-      return;
+      setError("Discount Percentage must be between 0 and 100."); toast.error("Discount Percentage must be between 0 and 100."); return;
     }
     if (!productData.name || !productData.description || !productData.imageUrl || !productData.category) {
-      setError("All fields (Name, Description, Image URL, Category, Original Price) are required.");
-      toast.error("All fields (Name, Description, Image URL, Category, Original Price) are required.");
-      return;
+      setError("All fields (Name, Description, Image URL, Category, Original Price) are required."); toast.error("Name, Description, Image URL, Category, Price are required."); return;
     }
-     // Basic URL validation for imageUrl
-    try {
-        new URL(productData.imageUrl);
-    } catch (_) {
-        setError("Please enter a valid Image URL (e.g., https://example.com/image.jpg).");
-        toast.error("Invalid Image URL format.");
-        return;
-    }
+    try { new URL(productData.imageUrl); } 
+    catch (_) { setError("Invalid Image URL format."); toast.error("Invalid Image URL format."); return; }
+    // --- End Validations ---
 
     const method = isEditMode ? 'PUT' : 'POST';
-    const url = isEditMode ? `${API_URL}/${currentProduct._id}` : API_URL;
+    const url = isEditMode ? `${API_URL_PRODUCTS}/${currentProduct._id}` : API_URL_PRODUCTS;
 
     try {
       const idToken = await user.getIdToken();
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}`},
         body: JSON.stringify(productData),
       });
-
       const responseData = await response.json();
       if (!response.ok) throw new Error(responseData.message || `Failed to ${isEditMode ? 'update' : 'create'} product`);
+      
       toast.success(`Product ${isEditMode ? 'updated' : 'created'} successfully!`);
-      fetchProducts();
-      handleCloseModal();
+      fetchProducts(); // This will also update stock info if createProduct initializes it
+      handleCloseProductModal();
     } catch (err) {
-      setError(err.message);
-      toast.error(err.message);
+      setError(err.message); // Show error in modal
+      toast.error(err.message); // Also show as toast
     }
   };
 
-  const handleDelete = async (productId, productName) => {
-    if (!window.confirm(`Are you sure you want to delete "${productName}"?`)) return;
-    if (!user) {
-      toast.error("Authentication required.");
-      return;
-    }
+  const handleDeleteProduct = async (productId, productName) => {
+    if (!window.confirm(`Are you sure you want to delete "${productName}"? This will also delete its stock record.`)) return;
+    if (!user) { toast.error("Authentication required."); return; }
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch(`${API_URL}/${productId}`, {
+      const response = await fetch(`${API_URL_PRODUCTS}/${productId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${idToken}` },
       });
@@ -155,29 +145,82 @@ const ManageRiceProducts = () => {
         const errData = await response.json();
         throw new Error(errData.message || 'Failed to delete product');
       }
-      toast.success(`Product "${productName}" deleted successfully!`);
+      toast.success(`Product "${productName}" and its stock record deleted successfully!`);
       fetchProducts();
     } catch (err) {
       toast.error(err.message);
     }
   };
   
+  // --- Functions for "Add Stock" Modal ---
+  const handleShowAddStockModal = (product) => {
+    setProductForStockUpdate(product);
+    setQuantityToPopulate('');
+    setShowAddStockModal(true);
+  };
+
+  const handleCloseAddStockModal = () => {
+    setShowAddStockModal(false);
+    setProductForStockUpdate(null);
+    setQuantityToPopulate('');
+  };
+
+  const handlePopulateStockSubmit = async (e) => {
+    e.preventDefault();
+    if (!productForStockUpdate || !user) {
+        toast.error("Product context or user authentication missing.");
+        return;
+    }
+    const quantity = parseInt(quantityToPopulate, 10);
+    if (isNaN(quantity) || quantity <= 0) {
+        toast.error('Please enter a valid positive quantity to add.');
+        return;
+    }
+
+    setIsPopulatingStock(true);
+    try {
+        const idToken = await user.getIdToken();
+        const response = await fetch(API_URL_STOCKS_POPULATE, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({
+                name: productForStockUpdate.name, // Send product name
+                quantity: quantity,
+            }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to populate stock.');
+        }
+        toast.success(data.message || `Successfully added ${quantity}kg to ${productForStockUpdate.name}.`);
+        fetchProducts(); // Re-fetch products to update the list with new stock details
+        handleCloseAddStockModal();
+    } catch (err) {
+        toast.error(`Error populating stock: ${err.message}`);
+        console.error("Error populating stock:", err);
+    } finally {
+        setIsPopulatingStock(false);
+    }
+  };
+
   const productCategories = ['General', 'Biryani', 'Idly', 'Dosa'];
 
   return (
     <Container className="mt-5 pt-5">
       <Row className="mb-4 align-items-center">
         <Col>
-          <h2 className="text-center">Manage Rice Products</h2>
+          <h2 className="text-center">Manage Rice Products & Stock</h2>
         </Col>
         <Col xs="auto">
-          <Button variant="primary" onClick={handleShowAddModal}>
+          <Button variant="primary" onClick={handleShowAddProductModal}>
             <FaPlus className="me-2" /> Add New Product
           </Button>
         </Col>
       </Row>
 
-      {/* Loading, error, no products messages (no change) */}
       {isLoading && <p className="text-center">Loading products...</p>}
       {!isLoading && error && !products.length && <Alert variant="danger" className="text-center">{error}</Alert>}
       {!isLoading && !products.length && !error && <p className="text-center">No products found. Add some!</p>}
@@ -185,17 +228,18 @@ const ManageRiceProducts = () => {
 
       {products.length > 0 && (
         <Card className="shadow-sm">
-          <Table striped bordered hover responsive className="m-0">
+          <Table striped bordered hover responsive className="m-0 align-middle">
             <thead className="table-dark">
               <tr>
                 <th>#</th>
                 <th>Image</th>
                 <th>Name</th>
                 <th>Category</th>
-                <th>Orig. Price (₹)</th>
-                <th>Discount (%)</th>
-                <th>Description</th>
-                <th>Actions</th>
+                <th>Price (₹)</th>
+                <th>Discount</th>
+                <th style={{minWidth: '150px'}}>Description</th>
+                <th className="text-center">Available (kg)</th>
+                <th className="text-center" style={{minWidth: '220px'}}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -204,26 +248,31 @@ const ManageRiceProducts = () => {
                   <td>{index + 1}</td>
                   <td>
                     <img 
-                        src={product.imageUrl} // Directly use the URL from backend
+                        src={product.imageUrl} 
                         alt={product.name} 
                         style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }} 
-                        onError={(e) => { /* Optional: more robust fallback logic or different placeholder */
-                            e.target.onerror = null; // prevent infinite loop if placeholder also fails
-                            e.target.src = "https://via.placeholder.com/60?text=No+Img";
-                        }}
+                        onError={(e) => { e.target.onerror = null; e.target.src = "https://via.placeholder.com/60?text=No+Img"; }}
                     />
                   </td>
                   <td>{product.name}</td>
                   <td>{product.category}</td>
                   <td>{product.originalPrice.toFixed(2)}</td>
                   <td>{product.discountPercentage || 0}%</td>
-                  <td style={{maxWidth: '300px', whiteSpace: 'pre-wrap', wordBreak: 'break-word'}}>{product.description}</td>
-                  <td>
-                    <Button variant="outline-primary" size="sm" className="me-2 mb-1 mb-md-0" onClick={() => handleShowEditModal(product)}>
-                      <FaEdit /> Edit
+                  <td style={{maxWidth: '250px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.85rem'}}>{product.description}</td>
+                  <td className="text-center">
+                    <Badge bg={product.available <= 50 ? (product.available === 0 ? "danger" : "warning") : "success"} pill>
+                        {product.available}
+                    </Badge>
+                  </td>
+                  <td className="text-center">
+                    <Button variant="outline-primary" size="sm" className="me-2 mb-1 mb-md-0" onClick={() => handleShowEditProductModal(product)} title="Edit Product Details">
+                      <FaEdit /> <span className="d-none d-md-inline">Edit</span>
                     </Button>
-                    <Button variant="outline-danger" size="sm" onClick={() => handleDelete(product._id, product.name)}>
-                      <FaTrashAlt /> Delete
+                    <Button variant="outline-info" size="sm" className="me-2 mb-1 mb-md-0" onClick={() => handleShowAddStockModal(product)} title="Add Stock">
+                        <FaBoxes /> <span className="d-none d-md-inline">Stock</span>
+                    </Button>
+                    <Button variant="outline-danger" size="sm" onClick={() => handleDeleteProduct(product._id, product.name)} title="Delete Product">
+                      <FaTrashAlt /> <span className="d-none d-md-inline">Del</span>
                     </Button>
                   </td>
                 </tr>
@@ -233,78 +282,89 @@ const ManageRiceProducts = () => {
         </Card>
       )}
 
-      <Modal show={showModal} onHide={handleCloseModal} centered size="lg">
+      {/* Modal for ADDING/EDITING PRODUCT DETAILS */}
+      <Modal show={showProductModal} onHide={handleCloseProductModal} centered size="lg">
         <Modal.Header closeButton>
           <Modal.Title>{isEditMode ? 'Edit' : 'Add New'} Rice Product</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {error && <Alert variant="danger">{error}</Alert>}
-          <Form onSubmit={handleSubmit}>
-            {/* Row 1: Name & Category (no change) */}
+          {error && <Alert variant="danger">{error}</Alert>} {/* Display specific form errors here */}
+          <Form onSubmit={handleProductSubmit}>
              <Row>
               <Col md={6}>
                 <Form.Group className="mb-3" controlId="formProductName">
                   <Form.Label>Name</Form.Label>
-                  <Form.Control type="text" name="name" value={currentProduct.name} onChange={handleInputChange} required />
+                  <Form.Control type="text" name="name" value={currentProduct.name} onChange={handleProductInputChange} required />
                 </Form.Group>
               </Col>
               <Col md={6}>
                  <Form.Group className="mb-3" controlId="formProductCategory">
                     <Form.Label>Category</Form.Label>
-                    <Form.Select name="category" value={currentProduct.category} onChange={handleInputChange} required>
-                        {productCategories.map(cat => (
-                            <option key={cat} value={cat}>{cat}</option>
-                        ))}
+                    <Form.Select name="category" value={currentProduct.category} onChange={handleProductInputChange} required>
+                        {productCategories.map(cat => (<option key={cat} value={cat}>{cat}</option>))}
                     </Form.Select>
                  </Form.Group>
               </Col>
             </Row>
-
-            {/* Row 2: Original Price & Discount (no change) */}
             <Row>
                 <Col md={6}>
                     <Form.Group className="mb-3" controlId="formProductOriginalPrice">
                     <Form.Label>Original Price (₹)</Form.Label>
-                    <Form.Control type="number" name="originalPrice" value={currentProduct.originalPrice} onChange={handleInputChange} required min="0.01" step="0.01" />
+                    <Form.Control type="number" name="originalPrice" value={currentProduct.originalPrice} onChange={handleProductInputChange} required min="0.01" step="0.01" />
                     </Form.Group>
                 </Col>
                  <Col md={6}>
                     <Form.Group className="mb-3" controlId="formProductDiscountPercentage">
                         <Form.Label>Discount (%)</Form.Label>
-                        <Form.Control type="number" name="discountPercentage" value={currentProduct.discountPercentage} onChange={handleInputChange} min="0" max="100" step="1" placeholder="0" />
+                        <Form.Control type="number" name="discountPercentage" value={currentProduct.discountPercentage} onChange={handleProductInputChange} min="0" max="100" step="1" placeholder="0" />
                     </Form.Group>
                 </Col>
             </Row>
-
-            {/* MODIFIED Image URL Input */}
             <Form.Group className="mb-3" controlId="formProductImageUrl">
                 <Form.Label>Image URL (Full public URL)</Form.Label>
-                <Form.Control 
-                    type="url" 
-                    name="imageUrl" 
-                    value={currentProduct.imageUrl} 
-                    onChange={handleInputChange} 
-                    placeholder="https://example.com/your_image.jpg" 
-                    required 
-                />
-                <Form.Text className="text-muted">
-                    Enter the complete, publicly accessible URL for the product image.
-                </Form.Text>
+                <Form.Control type="url" name="imageUrl" value={currentProduct.imageUrl} onChange={handleProductInputChange} placeholder="https://example.com/your_image.jpg" required />
+                <Form.Text className="text-muted"> Enter the complete, publicly accessible URL for the product image. </Form.Text>
             </Form.Group>
-
-            {/* Description & Submit button (no change) */}
             <Form.Group className="mb-3" controlId="formProductDescription">
               <Form.Label>Description</Form.Label>
-              <Form.Control as="textarea" rows={3} name="description" value={currentProduct.description} onChange={handleInputChange} required />
+              <Form.Control as="textarea" rows={3} name="description" value={currentProduct.description} onChange={handleProductInputChange} required />
             </Form.Group>
             <div className="d-grid">
               <Button variant={isEditMode ? "warning" : "success"} type="submit">
-                {isEditMode ? 'Save Changes' : 'Add Product'}
+                {isEditMode ? 'Save Product Changes' : 'Add Product'}
               </Button>
             </div>
           </Form>
         </Modal.Body>
       </Modal>
+
+      {/* Modal for ADDING STOCK to a specific product */}
+      <Modal show={showAddStockModal} onHide={handleCloseAddStockModal} centered>
+        <Modal.Header closeButton>
+            <Modal.Title>Add Stock for: <span className="fw-bold">{productForStockUpdate?.name}</span></Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+            <p>Current Available: <strong>{productForStockUpdate?.available} kg</strong></p>
+            <hr/>
+            <Form onSubmit={handlePopulateStockSubmit}>
+                <Form.Group className="mb-3" controlId="formQuantityToPopulate">
+                    <Form.Label>Quantity to Add (kg)</Form.Label>
+                    <Form.Control
+                        type="number"
+                        value={quantityToPopulate}
+                        onChange={(e) => setQuantityToPopulate(e.target.value)}
+                        min="1"
+                        required
+                        placeholder="Enter quantity to add"
+                    />
+                </Form.Group>
+                <Button variant="primary" type="submit" className="w-100" disabled={isPopulatingStock}>
+                    {isPopulatingStock ? 'Adding...' : 'Add to Stock'}
+                </Button>
+            </Form>
+        </Modal.Body>
+      </Modal>
+
     </Container>
   );
 };

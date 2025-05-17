@@ -109,8 +109,6 @@ const Admin = () => {
               >
                 <option value="All">All Statuses</option>
                 <option value="Pending">Pending</option>
-                <option value="Placed">Placed</option>
-                <option value="Shipped">Shipped</option>
                 <option value="Completed">Completed/Delivered</option>
                 <option value="Canceled">Canceled</option>
               </Form.Select>

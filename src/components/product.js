@@ -7,7 +7,6 @@ import 'react-toastify/dist/ReactToastify.css';
 import { riceDetailsData } from './data';
 
 const Product = () => {
-  // ... (all existing state and functions up to the return statement remain the same) ...
   const { cart, addToCart, increaseQuantity, decreaseQuantity } = useCart();
   const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
@@ -39,7 +38,8 @@ const Product = () => {
           throw new Error(errorData.message || 'Failed to fetch products');
         }
         const data = await response.json();
-        setBackendProducts(data);
+        // data should now include 'available' and 'effectivePrice' from backend
+        setBackendProducts(data); 
       } catch (error) {
         console.error("Error fetching products:", error);
         setProductFetchError(error.message);
@@ -59,23 +59,24 @@ const Product = () => {
     }
   }, [user]);
 
-  const calculateEffectivePrice = (product) => {
-    const discount = product.discountPercentage || 0;
-    const effective = product.originalPrice * (1 - discount / 100);
-    return parseFloat(effective.toFixed(2));
-  };
+  // Effective price is now sent from backend if using riceProductController modifications
+  // const calculateEffectivePrice = (product) => {
+  //   const discount = product.discountPercentage || 0;
+  //   const effective = product.originalPrice * (1 - discount / 100);
+  //   return parseFloat(effective.toFixed(2));
+  // };
 
   const handleBuyNow = (product) => {
     if (!user) { toast.error("Please log in to place an order."); return; }
-    const effectivePrice = calculateEffectivePrice(product);
-    setSelectedProduct({ ...product, effectivePrice: effectivePrice });
+    // const effectivePrice = calculateEffectivePrice(product); // Use product.effectivePrice directly
+    setSelectedProduct({ ...product /*, effectivePrice: product.effectivePrice */ });
     setUserDetails(prev => ({ ...prev, name: '', phone: '', address: '', quantity: 1, email: user?.email || '' }));
     setShowForm(true);
   };
 
   const handleProductAddToCart = (product) => {
-    const effectivePrice = calculateEffectivePrice(product);
-    addToCart({ ...product, id: product._id, price: effectivePrice }, 1);
+    // const effectivePrice = calculateEffectivePrice(product); // Use product.effectivePrice directly
+    addToCart({ ...product, id: product._id, price: product.effectivePrice }, 1);
   };
 
   const handleFormInputChange = (e) => {
@@ -92,7 +93,8 @@ const Product = () => {
       productName: selectedProduct.name, description: selectedProduct.description,
       totalPrice: itemPriceForOrder * userDetails.quantity, quantity: userDetails.quantity,
       userDetails: { name: userDetails.name, email: userDetails.email, phone: userDetails.phone, address: userDetails.address, },
-      cartItems: [{ productId: selectedProduct._id, name: selectedProduct.name, price: itemPriceForOrder, quantity: userDetails.quantity, }],
+      // cartItems should reflect a single item purchase in this context for stock deduction
+      cartItems: [{ productId: selectedProduct._id, name: selectedProduct.name, price: itemPriceForOrder, quantity: userDetails.quantity, imageUrl: selectedProduct.imageUrl }],
     };
     try {
       const token = await user.getIdToken();
@@ -118,8 +120,9 @@ const Product = () => {
   const handleCategoryChange = (category) => { setCurrentCategory(category); setSearchTerm(''); };
   const handleCloseForm = () => { setShowForm(false); setSelectedProduct(null); };
   const handleCloseDetailsModal = () => { setShowDetailsModal(false); setSelectedProductForDetails(null); setDetailedInfo(null); };
+  
   const getFilteredProducts = () => {
-    let productsToDisplay = backendProducts;
+    let productsToDisplay = backendProducts; // backendProducts now includes 'available' and 'effectivePrice'
     if (currentCategory !== 'All') productsToDisplay = productsToDisplay.filter(p => p.category === currentCategory);
     if (searchTerm.trim() !== '') productsToDisplay = productsToDisplay.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
     return productsToDisplay;
@@ -134,7 +137,6 @@ const Product = () => {
   return (
     <div style={{ minHeight: '100vh', background: '#ADD8E6', padding: '20px 0' }}>
       <div className="container mx-auto px-4 py-8 pt-20">
-        {/* Category buttons & Search Bar ... (no changes) ... */}
         <div className="flex flex-wrap justify-center space-x-2 sm:space-x-4 mb-6">
           {uniqueCategories.map(category => (
             <button key={category} onClick={() => handleCategoryChange(category)}
@@ -159,12 +161,15 @@ const Product = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
               {filteredProducts.map((product) => {
                 const productInCart = cart.find(item => item.id === product._id);
-                const effectivePrice = calculateEffectivePrice(product);
+                // effectivePrice is now directly from product object fetched from backend
+                const effectivePrice = product.effectivePrice; 
                 const hasDiscount = (product.discountPercentage || 0) > 0;
+                
+                const isLowStockOrUnavailable = product.available <= 50;
 
                 return (
                   <div key={product._id} className="bg-gray-50 p-5 rounded-xl shadow-lg transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl flex flex-col justify-between border">
-                    <div> {/* Main content of card */}
+                    <div> 
                       <div className="relative">
                         <img
                             src={product.imageUrl}
@@ -172,26 +177,32 @@ const Product = () => {
                             className="w-full h-52 object-cover rounded-lg mb-4"
                             onError={(e) => { e.target.onerror = null; e.target.src = "https://via.placeholder.com/300x200.png?text=No+Image"; }}
                         />
-                        {hasDiscount && (
+                        {hasDiscount && !isLowStockOrUnavailable && ( // Only show discount if not out of stock overlay
                             <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
                                 {product.discountPercentage}% OFF
                             </span>
                         )}
+                        {isLowStockOrUnavailable && (
+                          <div className="absolute top-0 left-0 w-full h-full bg-black bg-opacity-60 flex justify-center items-center rounded-lg z-10">
+                            <span className="text-white text-xl font-bold bg-red-600 px-4 py-2 rounded shadow-lg">
+                              OUT OF STOCK
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <h3
-                        className="text-xl font-semibold mb-1 text-gray-800 cursor-pointer hover:text-blue-600"
-                        onClick={() => handleShowDetails(product)}
+                        className={`text-xl font-semibold mb-1 text-gray-800 ${!isLowStockOrUnavailable ? 'cursor-pointer hover:text-blue-600' : 'text-gray-500'}`}
+                        onClick={() => !isLowStockOrUnavailable && handleShowDetails(product)}
                       >
                         {product.name}
                       </h3>
                       <p
-                        className="text-sm text-gray-600 mb-2 h-10 overflow-hidden"
-                        onClick={() => handleShowDetails(product)}
+                        className={`text-sm text-gray-600 mb-2 h-10 overflow-hidden ${!isLowStockOrUnavailable ? 'cursor-pointer' : ''}`}
+                        onClick={() => !isLowStockOrUnavailable && handleShowDetails(product)}
                       >
                         {product.description}
                       </p>
-                      {/* ▼▼▼ MODIFIED PRICE DISPLAY ▼▼▼ */}
-                      <div className="text-xl font-bold text-gray-900 mt-2 mb-1"> {/* Adjusted mb for the unit */}
+                      <div className="text-xl font-bold text-gray-900 mt-2 mb-1">
                         {hasDiscount ? (
                             <>
                                 <span className="text-gray-500 line-through text-base me-2">
@@ -204,19 +215,36 @@ const Product = () => {
                         )}
                       </div>
                       <p className="text-xs text-gray-500 mb-4"> (per kg)</p> 
-                      {/* ▲▲▲ MODIFIED PRICE DISPLAY ▲▲▲ */}
+                      {/* Uncomment to display available stock for debugging: */}
+                      {/* <p className="text-xs text-indigo-500">Available: {product.available}kg</p> */}
                     </div>
-                    <div className="flex flex-col space-y-3 mt-auto"> {/* Buttons div */}
-                       {productInCart ? (
+                    <div className="flex flex-col space-y-3 mt-auto">
+                       {isLowStockOrUnavailable ? (
+                         <div className="text-center py-2 mt-2">
+                           <p className="text-red-500 font-semibold">Currently Unavailable</p>
+                         </div>
+                       ) : productInCart ? (
                         <div className="flex items-center justify-between space-x-1 sm:space-x-2">
-                          <button className="w-10 h-10 bg-red-500 text-white rounded-lg hover:bg-red-600" onClick={() => decreaseQuantity(product._id)}>-</button>
+                          <button className="w-10 h-10 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors" onClick={() => decreaseQuantity(product._id)}>-</button>
                           <span className="text-lg font-medium">{productInCart.quantity}</span>
-                          <button className="w-10 h-10 bg-green-500 text-white rounded-lg hover:bg-green-600" onClick={() => increaseQuantity(product._id)}>+</button>
+                          <button className="w-10 h-10 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors" onClick={() => increaseQuantity(product._id)}>+</button>
                         </div>
                       ) : (
-                        <button className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700" onClick={() => handleProductAddToCart(product)} > Add to Cart </button>
+                        <button 
+                          className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors" 
+                          onClick={() => handleProductAddToCart(product)}
+                          disabled={isLowStockOrUnavailable} 
+                        > 
+                          Add to Cart 
+                        </button>
                       )}
-                      <button className="w-full bg-green-500 text-white py-2.5 rounded-lg hover:bg-green-600" onClick={() => handleBuyNow(product)} > Buy Now </button>
+                      <button 
+                        className="w-full bg-green-500 text-white py-2.5 rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors" 
+                        onClick={() => handleBuyNow(product)}
+                        disabled={isLowStockOrUnavailable}
+                      > 
+                        Buy Now 
+                      </button>
                     </div>
                   </div>
                 );
@@ -227,7 +255,7 @@ const Product = () => {
           )}
         </div>
 
-        {/* Order Form Modal ... (no changes to structure) ... */}
+        {/* Order Form Modal */}
         {showForm && selectedProduct && (
           <div className="fixed top-16 inset-x-0 bottom-0 z-[100] flex justify-center items-center bg-black bg-opacity-60 p-4 overflow-y-auto">
             <div className="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-md my-auto">
@@ -237,7 +265,7 @@ const Product = () => {
                 <div><label htmlFor="form_email" className="block text-sm font-medium">Email</label><input type="email" id="form_email" name="email" className="w-full px-3 py-2 border rounded-md bg-gray-100" value={userDetails.email} readOnly /></div>
                 <div><label htmlFor="form_phone" className="block text-sm font-medium">Phone</label><input type="tel" id="form_phone" name="phone" className="w-full px-3 py-2 border rounded-md" value={userDetails.phone} onChange={handleFormInputChange} required pattern="[0-9]{10,15}"/></div>
                 <div><label htmlFor="form_address" className="block text-sm font-medium">Address</label><textarea id="form_address" name="address" rows="3" className="w-full px-3 py-2 border rounded-md" value={userDetails.address} onChange={handleFormInputChange} required /></div>
-                <div><label htmlFor="form_quantity" className="block text-sm font-medium">Quantity (in kg)</label><input type="number" id="form_quantity" name="quantity" className="w-full px-3 py-2 border rounded-md" value={userDetails.quantity} onChange={handleFormInputChange} min="1" required /></div> {/* Added (in kg) to quantity label */}
+                <div><label htmlFor="form_quantity" className="block text-sm font-medium">Quantity (in kg)</label><input type="number" id="form_quantity" name="quantity" className="w-full px-3 py-2 border rounded-md" value={userDetails.quantity} onChange={handleFormInputChange} min="1" required /></div>
                 <p className="text-lg font-semibold text-right">Total: ₹{(selectedProduct.effectivePrice * userDetails.quantity).toFixed(2)}</p>
                 <button type="submit" className="w-full bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 font-semibold"> Place Order </button>
               </form>
@@ -245,7 +273,7 @@ const Product = () => {
           </div>
         )}
 
-        {/* Product Details Modal ... (no changes to structure) ... */}
+        {/* Product Details Modal */}
         {showDetailsModal && selectedProductForDetails && (
           <div className="fixed top-16 inset-x-0 bottom-0 z-[100] flex justify-center items-center bg-black bg-opacity-75 p-4 overflow-y-auto">
             <div className="bg-white p-6 sm:p-8 rounded-lg shadow-2xl w-full max-w-2xl my-auto max-h-[calc(100vh-8rem)] overflow-y-auto">
@@ -274,7 +302,6 @@ const Product = () => {
           </div>
         )}
 
-        {/* Footer (no changes) */}
         <hr className="my-12 border-t border-gray-400" />
         <footer className="bg-gray-800 text-white text-center py-6 rounded-lg">
           <p>© {new Date().getFullYear()} Sivagami Traders. All Rights Reserved.</p>
