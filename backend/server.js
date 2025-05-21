@@ -11,31 +11,38 @@ const riceProductRoutes = require('./routes/riceProductRoutes');
 // Initialize Express app
 const app = express();
 
-// Connect to MongoDB (Atlas)
-// Call connectDB to establish the connection
+// Connect to MongoDB
 connectDB();
 
 // Middleware
-app.use(express.json()); // Middleware to handle JSON body parsing
+app.use(express.json()); // Handle JSON body parsing
 
-// CORS configuration
+// ✅ CORS configuration - allow only specific origins
+const allowedOrigins = ['http://localhost:3001', 'https://rice-mart.vercel.app'];
 app.use(cors({
-  origin: 'https://rice-mart.vercel.app',  // Allow requests from localhost:3000 (your frontend)
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // API Routes
-app.use('/api', orderRoutes);         // Assuming orderRoutes handles things like /api/orders
+app.use('/api', orderRoutes);
 app.use('/api/stocks', stockRoutes);
 app.use('/api', riceProductRoutes);
-// Define a simple root route for testing if the server is up
+
+// Root route
 app.get('/', (req, res) => {
   res.send('RiceShop API is running!');
 });
 
 // Start the server
-const PORT = process.env.PORT || 5000; // Use port from .env or default to 5000
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
