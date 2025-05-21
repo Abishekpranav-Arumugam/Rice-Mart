@@ -39,7 +39,7 @@ const OrderHistory = () => {
           return;
         }
 
-        const response = await fetch('https://rice-mart.onrender.com/api/orders', {
+        const response = await fetch('https://rice-mart12.onrender.com/api/orders', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ const OrderHistory = () => {
             throw new Error("Authentication token missing.");
         }
 
-        const response = await fetch(`https://rice-mart.onrender.com/api/orders/${orderId}`, {
+        const response = await fetch(`https://rice-mart12.onrender.com/api/orders/${orderId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',

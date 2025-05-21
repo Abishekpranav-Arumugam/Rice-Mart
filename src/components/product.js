@@ -32,7 +32,7 @@ const Product = () => {
       setIsLoadingProducts(true);
       setProductFetchError('');
       try {
-        const response = await fetch('https://rice-mart.onrender.com/api/riceproducts');
+        const response = await fetch('https://rice-mart12.onrender.com/api/riceproducts');
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ message: 'Network response was not ok' }));
           throw new Error(errorData.message || 'Failed to fetch products');
@@ -89,7 +89,7 @@ const Product = () => {
     try {
       const token = await user.getIdToken();
       if (!token) { toast.error('Authentication error. Please log in again.'); return; }
-      const response = await fetch('https://rice-mart.onrender.com/api/orders', {
+      const response = await fetch('https://rice-mart12.onrender.com/api/orders', {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(orderPayload),
       });
       if (response.ok) {

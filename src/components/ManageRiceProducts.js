@@ -23,8 +23,8 @@ const ManageRiceProducts = () => {
   const [isPopulatingStock, setIsPopulatingStock] = useState(false);
 
 
-  const API_URL_PRODUCTS = 'https://rice-mart.onrender.com/api/riceproducts';
-  const API_URL_STOCKS_POPULATE = 'https://rice-mart.onrender.com/api/stocks/populate';
+  const API_URL_PRODUCTS = 'https://rice-mart12.onrender.com/api/riceproducts';
+  const API_URL_STOCKS_POPULATE = 'https://rice-mart12.onrender.com/api/stocks/populate';
 
 
   const fetchProducts = async () => {

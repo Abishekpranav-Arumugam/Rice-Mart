@@ -21,7 +21,7 @@ const PopulateStock = () => {
     const fetchVarieties = async () => {
       setIsLoadingVarieties(true);
       try {
-        const response = await fetch('https://rice-mart.onrender.com/api/riceproducts');
+        const response = await fetch('https://rice-mart12.onrender.com/api/riceproducts');
         if (!response.ok) throw new Error('Failed to fetch rice varieties');
         const data = await response.json();
         setAvailableRiceVarieties(data.map(p => ({ id: p._id, name: p.name }))); // Store id and name
@@ -54,7 +54,7 @@ const PopulateStock = () => {
 
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('https://rice-mart.onrender.com/api/stocks/populate', {
+      const response = await fetch('https://rice-mart12.onrender.com/api/stocks/populate', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
