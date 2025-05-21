@@ -70,7 +70,7 @@ const StockHistory = () => {
       if (authLoading) { if (isMounted) setLoadingStock(true); console.log("[StockHistory] Auth loading, defer stock fetch."); return; }
       if (isMounted) { setLoadingStock(true); setStockError(null); }
       try {
-        const response = await fetch('https://rice-mart12.onrender.com/api/stocks');
+        const response = await fetch('https://rice-mart.onrender.com/api/stocks');
         if (!response.ok) { const e = await response.json().catch(() => ({ message: `HTTP ${response.status}` })); throw new Error(e.message); }
         if (!isMounted) return;
         const fetchedStocks = await response.json();

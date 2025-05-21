@@ -29,7 +29,7 @@ const Admin = () => {
     const fetchOrders = async () => {
       setError(null);
       try {
-        const response = await axios.get("https://rice-mart12.onrender.com/api/admin/all-orders");
+        const response = await axios.get("https://rice-mart.onrender.com/api/admin/all-orders");
         if (Array.isArray(response.data)) {
           setAllOrders(response.data);
         } else {
@@ -87,7 +87,7 @@ const Admin = () => {
     const token = await getAuthToken();
     if (!token) return;
     try {
-      await axios.put(`https://rice-mart12.onrender.com/api/orders/${orderId}`, { status: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.put(`https://rice-mart.onrender.com/api/orders/${orderId}`, { status: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
       setAllOrders(prevOrders => prevOrders.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
       setSuccess(`Order ${orderId} status updated to ${newStatus.toLowerCase()}.`);
       setTimeout(() => setSuccess(""), 3000);
