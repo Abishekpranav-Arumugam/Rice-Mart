@@ -17,24 +17,53 @@ connectDB();
 // Middleware
 app.use(express.json()); // Handle JSON body parsing
 
-// ✅ CORS configuration - allow only specific origins
-const allowedOrigins = ['http://localhost:3001', 'https://rice-mart.vercel.app'];
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// --- CORS Configuration ---
+// Define your allowed origins
+const allowedOrigins = [
+    'http://localhost:3001',        // Your local React development server
+    'https://rice-mart.vercel.app', // Your deployed Vercel frontend
+    // Add any other frontend origins if necessary
+];
+
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Log the incoming origin for debugging (check your Render logs)
+        console.log('Request Origin:', origin);
+
+        // Allow requests with no origin (like mobile apps, curl, Postman)
+        // or if origin is in the allowedOrigins list
+        if (!origin || allowedOrigins.includes(origin)) {
+            if (origin) {
+                console.log(`CORS: Allowed origin: ${origin}`);
+            } else {
+                console.log('CORS: Allowed (no origin)');
+            }
+            callback(null, true);
+        } else {
+            console.error(`CORS: Blocked origin: ${origin}. Not in allowed list: ${allowedOrigins.join(', ')}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Explicitly include OPTIONS for preflight, and PATCH if you use it
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'], // Common headers; X-Requested-With can be useful
+    credentials: true, // IMPORTANT: Set this to true if your frontend sends cookies or Authorization headers.
+                       // Your frontend fetch/axios requests might also need `credentials: 'include'`.
+    optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204 for OPTIONS requests
+};
+
+app.use(cors(corsOptions));
+// --- End CORS Configuration ---
+
 
 // API Routes
+// Your routes are:
+// /api/... (from orderRoutes, e.g., /api/orders)
+// /api/stocks/... (from stockRoutes)
+// /api/... (from riceProductRoutes, e.g., /api/riceproducts)
 app.use('/api', orderRoutes);
+app.use('/api', riceProductRoutes); // Make sure this doesn't have conflicting paths with orderRoutes if both use /api/
 app.use('/api/stocks', stockRoutes);
-app.use('/api', riceProductRoutes);
+
 
 // Root route
 app.get('/', (req, res) => {
@@ -44,5 +73,10 @@ app.get('/', (req, res) => {
 // Start the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
+  // This localhost message is mainly for local development.
+  // On Render, it will be accessible via its public URL (rice-mart2.onrender.com).
+  if (process.env.NODE_ENV !== 'production') {
+      console.log(`Development server accessible at http://localhost:${PORT}`);
+  }
 });
