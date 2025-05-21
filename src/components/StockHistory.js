@@ -3,13 +3,13 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Bar } from 'react-chartjs-2'; // Bar component can render 'line' type
 import GaugeChart from 'react-gauge-chart';
 import { format, parseISO } from 'date-fns'; // Correct
-import { ResponsiveTreeMap } from '@nivo/treemap';
+// import { ResponsiveTreeMap } from '@nivo/treemap'; // REMOVED TreeMap import
 import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, LineElement, PointElement
 } from 'chart.js';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from "framer-motion";
-import { BsFillGrid3X3GapFill, BsBarChartLineFill, BsSpeedometer2, BsGrid1X2Fill } from "react-icons/bs";
+import { BsFillGrid3X3GapFill, BsBarChartLineFill, BsSpeedometer2 } from "react-icons/bs"; // REMOVED BsGrid1X2Fill for Treemap
 import { FaCalendarDay, FaCalendarWeek, FaCalendarAlt } from "react-icons/fa";
 
 ChartJS.register( CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend );
@@ -56,7 +56,7 @@ const StockHistory = () => {
   const [stockBarChartData, setStockBarChartData] = useState({ labels: [], datasets: [] });
   const [loadingStock, setLoadingStock] = useState(true);
   const [stockError, setStockError] = useState(null);
-  const [stockViewMode, setStockViewMode] = useState('grid');
+  const [stockViewMode, setStockViewMode] = useState('grid'); // Default view
   const [salesData, setSalesData] = useState(null);
   const [salesViewMode, setSalesViewMode] = useState('daily');
   const [salesLoading, setSalesLoading] = useState(false);
@@ -70,7 +70,7 @@ const StockHistory = () => {
       if (authLoading) { if (isMounted) setLoadingStock(true); console.log("[StockHistory] Auth loading, defer stock fetch."); return; }
       if (isMounted) { setLoadingStock(true); setStockError(null); }
       try {
-        const response = await fetch('http://localhost:5000/api/stocks');
+        const response = await fetch('https://rice-mart.onrender.com/api/stocks');
         if (!response.ok) { const e = await response.json().catch(() => ({ message: `HTTP ${response.status}` })); throw new Error(e.message); }
         if (!isMounted) return;
         const fetchedStocks = await response.json();
@@ -114,7 +114,7 @@ const StockHistory = () => {
         console.log("[SalesDataEffect] Conditions not met, returning early. Set salesLoading to:", authLoading || loadingStock);
         if(stockItems.length === 0 && !loadingStock){
             console.warn("[SalesDataEffect] StockItems is empty but stock is not loading. Sales graph will not show.");
-             if (isMounted) setSalesData({ period: salesViewMode, labels: [], values: [] }); // Explicitly set empty state
+             if (isMounted) setSalesData({ period: salesViewMode, labels: [], values: [] });
         }
         return;
       }
@@ -122,10 +122,8 @@ const StockHistory = () => {
       console.log("[SalesDataEffect] Generating sales data now...");
 
       try {
-        // ▼▼▼ THIS IS THE CRITICAL LINE FOR DEMONSTRATION ▼▼▼
-        const simulatedCurrentJsDate = new Date(SIMULATED_YEAR, 5, 15); // Simulate June 15, 2025
+        const simulatedCurrentJsDate = new Date(SIMULATED_YEAR, 5, 15);
         console.log("[SalesDataEffect] SALES_START_DATE:", SALES_START_DATE.toDateString(), "simulatedCurrentJsDate:", simulatedCurrentJsDate.toDateString());
-        // ▲▲▲ END OF CRITICAL LINE ▲▲▲
 
         if (simulatedCurrentJsDate < SALES_START_DATE) {
           console.log("[SalesDataEffect] Simulated current date is before sales start date. Setting empty sales data.");
@@ -157,6 +155,7 @@ const StockHistory = () => {
 
         let displayLabels = [];
         let displayCumulativeValues = [];
+        let iterMonth; // Declare iterMonth here
 
         if (salesViewMode === 'monthly') {
           console.log('[SalesDataEffect] Processing MONTHLY sales view.');
@@ -166,7 +165,7 @@ const StockHistory = () => {
             monthlyAggregated[monthYearKey] = (monthlyAggregated[monthYearKey] || 0) + ds.sales;
           });
           let cumulativeSales = 0;
-          iterMonth = new Date(SALES_START_DATE);
+          iterMonth = new Date(SALES_START_DATE); // Initialize iterMonth
           while(iterMonth <= simulatedCurrentJsDate) {
             const monthLabel = MONTH_NAMES_SHORT[iterMonth.getMonth()];
             const monthYearKey = `${monthLabel} ${iterMonth.getFullYear()}`;
@@ -234,7 +233,6 @@ const StockHistory = () => {
     return () => { isMounted = false; console.log("[SalesDataEffect] Sales effect unmounted");};
   }, [authLoading, user, salesViewMode, loadingStock, stockItems]);
 
-  // ... (rest of your component: useMemo hooks, JSX, etc. remain unchanged from your last provided version)
   const stockChartOptions = useMemo(() => ({ 
      responsive: true, maintainAspectRatio: false, indexAxis: 'y', interaction: { mode: 'index', intersect: false, axis: 'y' },
      scales: { x: { stacked: false, beginAtZero: true, title: { display: true, text: 'Quantity (kg)', font: { size: 14 }, color: '#4a5568' }, ticks: { color: '#4a5568' }, grid: { color: 'rgba(200, 200, 200, 0.3)' } }, y: { stacked: false, ticks: { color: '#4a5568', font: { size: 11 } }, grid: { display: true, color: 'rgba(226, 232, 240, 0.9)', drawBorder: false } } },
@@ -295,9 +293,7 @@ const StockHistory = () => {
       }
   }), [salesData]); 
 
-  const treemapData = useMemo(() => ({ 
-     name: "Stock", color:"#fff", children: stockItems.filter(i => i.available > 0).map(i => ({ name: i.name, value: i.available, initial: i.bought, sold: i.sold, percentage: i.percentage, color: i.percentage<=20?'#ef4444':i.percentage<=50?'#f59e0b':'#22c55e'}))
-  }), [stockItems]);
+  // REMOVED treemapData useMemo hook
 
   const salesChartDisplayData = useMemo(() => ({
       labels: salesData?.labels || [],
@@ -325,7 +321,7 @@ const StockHistory = () => {
   const viewBlockVariant = { initial:{opacity:0, y:10}, animate:{opacity:1, y:0}, exit:{opacity:0, y:-10}, transition:{duration:0.35, ease:"easeInOut"}};
   const pageBackground = "bg-gradient-to-br from-sky-100 to-cyan-100";
 
-  if (authLoading || (loadingStock && stockItems.length === 0 && !stockError) ) { // Modified to not show main loader if there's a stockError
+  if (authLoading || (loadingStock && stockItems.length === 0 && !stockError) ) {
       console.log("[StockHistory Render] Showing main loader. AuthLoading:", authLoading, "LoadingStock:", loadingStock, "StockItems empty:", stockItems.length === 0);
       return <div className={`flex min-h-screen items-center justify-center ${pageBackground} p-4`}><p className="text-xl text-slate-600 animate-pulse">Loading Data...</p></div>;
   }
@@ -347,14 +343,14 @@ const StockHistory = () => {
               <motion.button aria-label="Stock Grid View" onClick={() => setStockViewMode('grid')} className={`px-3 py-2 text-xs sm:text-sm rounded-lg shadow font-medium flex items-center gap-1.5 sm:gap-2 transition-all ${ stockViewMode === 'grid' ? 'bg-slate-700 text-white ring-2 ring-offset-1 ring-slate-700' : 'bg-white text-slate-600 hover:bg-slate-100'}`} whileHover={{scale:stockViewMode!=='grid'?1.05:1.0}} whileTap={{scale:0.95}}> <BsFillGrid3X3GapFill/> Grid </motion.button>
               <motion.button aria-label="Stock Chart View" onClick={() => setStockViewMode('chart')} className={`px-3 py-2 text-xs sm:text-sm rounded-lg shadow font-medium flex items-center gap-1.5 sm:gap-2 transition-all ${ stockViewMode === 'chart' ? 'bg-slate-700 text-white ring-2 ring-offset-1 ring-slate-700' : 'bg-white text-slate-600 hover:bg-slate-100'}`} whileHover={{scale:stockViewMode!=='chart'?1.05:1.0}} whileTap={{scale:0.95}}> <BsBarChartLineFill/> Chart </motion.button>
               <motion.button aria-label="Stock Gauge View" onClick={() => setStockViewMode('gauge')} className={`px-3 py-2 text-xs sm:text-sm rounded-lg shadow font-medium flex items-center gap-1.5 sm:gap-2 transition-all ${ stockViewMode === 'gauge' ? 'bg-slate-700 text-white ring-2 ring-offset-1 ring-slate-700' : 'bg-white text-slate-600 hover:bg-slate-100'}`} whileHover={{scale:stockViewMode!=='gauge'?1.05:1.0}} whileTap={{scale:0.95}}> <BsSpeedometer2/> Gauge </motion.button>
-              <motion.button aria-label="Stock Treemap View" onClick={() => setStockViewMode('treemap')} className={`px-3 py-2 text-xs sm:text-sm rounded-lg shadow font-medium flex items-center gap-1.5 sm:gap-2 transition-all ${ stockViewMode === 'treemap' ? 'bg-slate-700 text-white ring-2 ring-offset-1 ring-slate-700' : 'bg-white text-slate-600 hover:bg-slate-100'}`} whileHover={{scale:stockViewMode!=='treemap'?1.05:1.0}} whileTap={{scale:0.95}}> <BsGrid1X2Fill/> Treemap </motion.button>
+              {/* REMOVED Treemap Button */}
           </div>
           <div className="min-h-[400px] sm:min-h-[450px] w-full relative">
               <AnimatePresence mode='wait'>
                   {stockViewMode === 'grid' && ( <motion.div key="stock-grid-view" variants={viewBlockVariant} initial="initial" animate="animate" exit="exit" > <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" variants={gridContainerStagger} initial="hidden" animate="visible" > {stockItems.map((item) => ( <motion.div key={item.id} className="bg-white rounded-lg border border-slate-200 shadow-md overflow-hidden p-4 flex flex-col justify-between hover:shadow-lg transition-shadow duration-300" variants={gridItemVariant} whileHover={{ y: -4, transition:{ duration: 0.2 } }} > <div> <h4 className="text-base font-semibold text-slate-800 mb-2.5 truncate" title={item.name}>{item.name}</h4> <div className="w-full bg-slate-200 rounded-full h-3.5 mb-1.5 overflow-hidden shadow-inner"> <motion.div className={`h-full rounded-full ${getProgressBarColor(item.percentage)} flex items-center justify-end`} initial={{ width: '0%' }} animate={{ width: `${item.percentage}%` }} transition={{ duration: 0.7, ease: "easeOut" }} title={`${item.percentage}% Available`}> {item.percentage > 15 && (<span className="text-white text-[9px] font-bold px-1.5 leading-none">{item.percentage}%</span>)} </motion.div> </div> <div className="flex justify-between text-xs text-slate-600 mb-0.5"><span>Avail: {item.available} kg</span><span>Sold: {item.sold} kg</span></div> <p className="text-xs text-slate-400 text-right">Initial: {item.bought} kg</p> </div> <div className={`w-2.5 h-2.5 ${getProgressBarColor(item.percentage)} rounded-full self-end mt-1.5`}></div> </motion.div> ))} </motion.div> </motion.div> )}
                   {stockViewMode === 'chart' && ( <motion.div key="stock-chart-view" variants={viewBlockVariant} initial="initial" animate="animate" exit="exit" className="bg-white p-4 sm:p-6 rounded-xl shadow-inner border border-slate-200" > <div style={{ height: stockItems.length > 5 ? `${stockItems.length * 60}px` : '450px', minHeight: '400px' }}> {stockItems.length > 0 ? (<Bar options={stockChartOptions} data={stockBarChartData} />) : (<p className="text-center text-gray-500 pt-10">No stock data available.</p>)} </div> </motion.div> )}
                   {stockViewMode === 'gauge' && ( <motion.div key="stock-gauge-view" variants={viewBlockVariant} initial="initial" animate="animate" exit="exit" > <motion.div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5" variants={gridContainerStagger} initial="hidden" animate="visible"> {stockItems.map((item) => ( <motion.div key={`${item.id}-gauge`} className="bg-white rounded-lg border border-slate-200 shadow-md overflow-hidden p-3 sm:p-4 flex flex-col items-center text-center hover:shadow-lg transition-shadow" variants={gridItemVariant} whileHover={{ y: -4 }} > <h4 className="text-sm font-semibold text-slate-700 mb-1 truncate w-full" title={item.name}>{item.name}</h4> <GaugeChart id={`gauge-${item.id}`} style={{width: '85%', marginBottom:'-10px'}} nrOfLevels={20} arcsLength={[0.2, 0.3, 0.5]} colors={['#ef4444', '#f59e0b', '#22c55e']} percent={item.percentage / 100} arcPadding={0.02} cornerRadius={3} textColor="#444" fontSize="16px" needleColor="#ccc" needleBaseColor="#aaa"/> <p className="text-xs text-slate-500 mt-1.5">Av: {item.available}/{item.bought}kg (Sold: {item.sold}kg)</p> </motion.div> ))} </motion.div> </motion.div> )}
-                   {stockViewMode === 'treemap' && ( <motion.div key="stock-treemap-view" variants={viewBlockVariant} initial="initial" animate="animate" exit="exit" className="bg-white p-2 sm:p-4 rounded-xl shadow-inner border border-slate-200" > <p className="text-xs text-center text-slate-500 mb-2">Area represents proportion of total available stock</p> <div style={{ height: '500px' }}> {treemapData.children && treemapData.children.length > 0 ? ( <ResponsiveTreeMap data={treemapData} identity="name" value="value" valueFormat=".0f" margin={{ top: 5, right: 5, bottom: 5, left: 5 }} labelSkipSize={16} labelTextColor={{ from: 'color', modifiers: [['darker', 1.8]] }} parentLabelTextColor="#fff" colors={ (node) => node.data.color } nodeOpacity={0.85} borderWidth={1} borderColor={{ from: 'color', modifiers: [['darker', 0.3]] }} animate={true} motionConfig="stiff" tooltip={({ node }) => ( <div className="bg-white p-2 rounded shadow text-xs border border-gray-300"> <strong style={{ color: node.color }}>{node.id}</strong>: {node.formattedValue} kg ({node.data.percentage}%) <br /> <span className="text-gray-600">Initial: {node.data.initial} kg, Sold: {node.data.sold} kg</span> </div> )} /> ) : ( <p className="text-center text-gray-500 pt-10">No available stock for Treemap.</p> )} </div> </motion.div> )}
+                  {/* REMOVED Treemap View Content */}
               </AnimatePresence>
             </div>
         </section>

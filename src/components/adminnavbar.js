@@ -44,7 +44,7 @@ const AdminNavbar = () => {
               objectFit: 'cover'
             }}
           />
-          Sivagami Traders
+          Sivakami Traders
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="admin-navbar-nav" />
         <Navbar.Collapse id="admin-navbar-nav">

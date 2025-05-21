@@ -38,7 +38,7 @@ const NavbarComponent = ({ user, handleLogout }) => {
               objectFit: 'cover'
             }}
           />
-          Sivagami Traders
+          Sivakami Traders
         </Navbar.Brand>
         {/* ▲▲▲ END OF UPDATE ▲▲▲ */}
         <Navbar.Toggle aria-controls="generic-navbar-nav" />

@@ -1,23 +1,18 @@
 // src/components/OrderHistory.js
 import React, { useEffect, useState } from 'react';
-import { format, parseISO } from 'date-fns'; // Correct
-import { useAuth } from '../context/AuthContext'; // Import useAuth
-// If you have Link for navigation in your actual app, uncomment it
-// import { Link } from 'react-router-dom';
-// Import useState for handling cancellation process UI
-import { Alert, Button } from 'react-bootstrap'; // Assuming you have react-bootstrap installed or can map these
-                                                  // to your Tailwind equivalents if not using bootstrap
+import { format, parseISO } from 'date-fns';
+import { useAuth } from '../context/AuthContext';
+import { Alert, Button } from 'react-bootstrap'; // Assuming react-bootstrap
 
 const OrderHistory = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [cancelingOrderId, setCancelingOrderId] = useState(null); // State to track which order is being canceled
-  const [cancelError, setCancelError] = useState(null); // State for cancellation errors
-  const [cancelSuccess, setCancelSuccess] = useState(null); // State for cancellation success
-  const { user, loading: authLoading } = useAuth(); // Get user and auth loading state
+  const [cancelingOrderId, setCancelingOrderId] = useState(null);
+  const [cancelError, setCancelError] = useState(null);
+  const [cancelSuccess, setCancelSuccess] = useState(null);
+  const { user, loading: authLoading } = useAuth();
 
-  // Effect to fetch orders for the logged-in user
   useEffect(() => {
     const fetchOrders = async () => {
       if (authLoading) {
@@ -44,9 +39,7 @@ const OrderHistory = () => {
           return;
         }
 
-        // THIS IS THE CORRECT ENDPOINT FOR USER'S HISTORY (should fetch all statuses)
-        // This endpoint in the backend needs to be secured with authMiddleware
-        const response = await fetch('http://localhost:5000/api/orders', {
+        const response = await fetch('https://rice-mart.onrender.com/api/orders', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -60,7 +53,7 @@ const OrderHistory = () => {
             const backendError = await response.json();
             errorData.message = backendError.error || backendError.message || errorData.message;
           } catch (e) {
-             // Failed to parse error response
+            // Failed to parse error response
           }
           throw new Error(errorData.message);
         }
@@ -79,11 +72,10 @@ const OrderHistory = () => {
     fetchOrders();
   }, [user, authLoading]);
 
-  // ADD THIS NEW FUNCTION TO HANDLE USER CANCELLATION
   const handleUserCancel = async (orderId) => {
-    setCancelError(null); // Clear previous errors
-    setCancelSuccess(null); // Clear previous success
-    setCancelingOrderId(orderId); // Indicate this order is being canceled
+    setCancelError(null);
+    setCancelSuccess(null);
+    setCancelingOrderId(orderId);
 
     try {
         if (!user) {
@@ -94,15 +86,13 @@ const OrderHistory = () => {
             throw new Error("Authentication token missing.");
         }
 
-        // Call the backend PUT route to update the order status to "Canceled"
-        // This route is also used by Admin, but backend security checks ownership.
-        const response = await fetch(`http://localhost:5000/api/orders/${orderId}`, {
+        const response = await fetch(`https://rice-mart.onrender.com/api/orders/${orderId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`, // Send the user's token for authorization
+                Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ status: 'Canceled' }), // Send the desired status
+            body: JSON.stringify({ status: 'Canceled' }),
         });
 
         if (!response.ok) {
@@ -116,7 +106,6 @@ const OrderHistory = () => {
             throw new Error(errorData.message);
         }
 
-        // Update local state to reflect the cancellation
         setOrders(prevOrders =>
             prevOrders.map(order =>
                 order._id === orderId ? { ...order, status: 'Canceled' } : order
@@ -129,21 +118,15 @@ const OrderHistory = () => {
         console.error(`OrderHistory: Error canceling order ${orderId}:`, err);
         setCancelError(err.message || `Failed to cancel order ${orderId}. Please try again.`);
     } finally {
-        setCancelingOrderId(null); // Reset canceling state
-        // Optionally clear success/error messages after a delay
-        // setTimeout(() => setCancelSuccess(null), 5000);
-        // setTimeout(() => setCancelError(null), 5000);
+        setCancelingOrderId(null);
     }
   };
 
-
-  // --- UI Rendering with Loading and Error States ---
-
-  const pageBackground = "bg-slate-100"; // Light gray page background, similar to the image
+  const pageBackground = "bg-[#E0F7FA]";
 
   if (authLoading) {
     return (
-      <div className={`flex min-h-screen items-center justify-center ${pageBackground} p-4 sm:p-6`}>
+      <div className={`flex flex-col min-h-screen items-center justify-center ${pageBackground} p-4 sm:p-6`}>
         <p className="text-center py-10 text-xl text-gray-700">Authenticating user...</p>
       </div>
     );
@@ -151,7 +134,7 @@ const OrderHistory = () => {
 
   if (!user && !loading) {
     return (
-      <div className={`flex min-h-screen items-center justify-center ${pageBackground} p-4 sm:p-6`}>
+      <div className={`flex flex-col min-h-screen items-center justify-center ${pageBackground} p-4 sm:p-6`}>
         <div className="bg-white p-10 rounded-lg shadow-xl text-center">
             <h3 className="text-2xl font-semibold text-red-600 mb-4">Access Denied</h3>
             <p className="text-gray-700">{error || 'Please log in to view your order history.'}</p>
@@ -162,7 +145,7 @@ const OrderHistory = () => {
 
   if (loading) {
     return (
-      <div className={`flex min-h-screen items-center justify-center ${pageBackground} p-4 sm:p-6`}>
+      <div className={`flex flex-col min-h-screen items-center justify-center ${pageBackground} p-4 sm:p-6`}>
         <p className="text-center py-10 text-xl text-gray-700">Loading your orders...</p>
       </div>
     );
@@ -170,7 +153,7 @@ const OrderHistory = () => {
 
   if (error) {
     return (
-        <div className={`flex min-h-screen items-center justify-center ${pageBackground} p-4 sm:p-6`}>
+        <div className={`flex flex-col min-h-screen items-center justify-center ${pageBackground} p-4 sm:p-6`}>
             <div className="bg-white p-10 rounded-lg shadow-xl text-center">
                 <h3 className="text-2xl font-semibold text-red-600 mb-4">Error Fetching Orders</h3>
                 <p className="text-gray-700">{error}</p>
@@ -193,7 +176,6 @@ const OrderHistory = () => {
           Your Order History
         </h2>
 
-        {/* Display cancellation messages */}
         {cancelSuccess && <Alert variant="success" onClose={() => setCancelSuccess(null)} dismissible>{cancelSuccess}</Alert>}
         {cancelError && <Alert variant="danger" onClose={() => setCancelError(null)} dismissible>{cancelError}</Alert>}
 
@@ -214,7 +196,6 @@ const OrderHistory = () => {
                   <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Order Placed</th>
                   <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Est. Delivery</th>
                   <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Status</th>
-                  {/* ADDED Action Column header */}
                   <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-center text-xs font-medium text-white uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
@@ -226,8 +207,7 @@ const OrderHistory = () => {
                   const orderPlacedDate = new Date(order.createdAt);
                   const now = new Date();
                   const diffMs = now.getTime() - orderPlacedDate.getTime();
-                  const diffHours = diffMs / (1000 * 60 * 60); // Difference in hours
-                  // Check if within the first 48 hours AND status is not already Completed or Canceled
+                  const diffHours = diffMs / (1000 * 60 * 60); 
                   const canCancel = order.status !== 'Completed' && order.status !== 'Canceled' && diffHours <= 48;
 
 
@@ -235,11 +215,15 @@ const OrderHistory = () => {
                     <div>
                       {order.cartItems.map((item, idx) => (
                         <p key={idx} className="text-sm text-gray-700 leading-tight">
-                          {item.name} (x{item.quantity || 1}) - ₹{item.price?.toFixed(2)}
+                          {/* MODIFIED LINE BELOW */}
+                          {item.name} (x{item.quantity || 1} kg) - ₹{item.price?.toFixed(2)}
                         </p>
                       ))}
                     </div>
                   ) : (
+                    // If there's a single productName, and you want to show (kg) there too,
+                    // you might need to adjust based on how productName and quantity are structured
+                    // For now, this part remains as is, assuming cartItems is the primary source for detailed items.
                     <span className="text-gray-700">{order.productName}</span>
                   );
 
@@ -261,18 +245,16 @@ const OrderHistory = () => {
                         ) : order.status === 'Canceled' ? (
                            <span className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-300 text-red-900">Canceled</span>
                         ) : (
-                          // Default to Pending for any other status (including initial 'Placed')
                           <span className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">{order.status || 'Pending'}</span>
                         )}
                       </td>
-                       {/* ADDED Action Column body */}
                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-center text-sm">
                          {canCancel ? (
                            <Button
-                             variant="danger" // Use a button style appropriate for cancellation
+                             variant="danger" 
                              size="sm"
                              onClick={() => handleUserCancel(order._id)}
-                             disabled={cancelingOrderId === order._id} // Disable button while canceling
+                             disabled={cancelingOrderId === order._id}
                            >
                              {cancelingOrderId === order._id ? 'Canceling...' : 'Cancel Order'}
                            </Button>
@@ -281,7 +263,7 @@ const OrderHistory = () => {
                          ) : order.status === 'Completed' || order.status === 'Delivered' ? (
                              <span className="text-green-600">Delivered</span>
                          ) : (
-                            <span className="text-gray-500">Cancel button disabled</span> // Text when past the 48-hour window
+                            <span className="text-gray-500">Cancel button disabled</span>
                          )}
                        </td>
                     </tr>

@@ -56,7 +56,7 @@ const Dashboard = () => {
                 objectFit: 'cover'
               }}
             />
-            Sivagami Traders
+            Sivakami Traders
           </Navbar.Brand>
           {/* ▲▲▲ END OF UPDATE ▲▲▲ */}
           <Navbar.Toggle aria-controls="basic-navbar-nav" />

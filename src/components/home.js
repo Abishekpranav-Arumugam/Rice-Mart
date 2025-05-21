@@ -43,16 +43,16 @@ const Home = () => {
                 objectFit: 'cover' // 'cover' is generally better for logos to maintain aspect ratio in a circle
               }}
             />
-            Sivagami Traders
+            Sivakami Traders
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="home-navbar-nav" />
           <Navbar.Collapse id="home-navbar-nav">
             <Nav className="mx-auto">
               <Nav.Link href="/product">
-                Product
+                Shop
               </Nav.Link>
               <Nav.Link href="/ohistory">
-                Order Arrivals
+                My Orders
               </Nav.Link>
               <Nav.Link href="/aboutus">
                 About Us
