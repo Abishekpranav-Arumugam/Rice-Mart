@@ -19,11 +19,13 @@ connectDB();
 app.use(express.json()); // Middleware to handle JSON body parsing
 
 // CORS configuration
-app.use(cors({
-  origin: 'https://rice-mart.vercel.app',  // Allow requests from localhost:3000 (your frontend)
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// app.use(cors({
+//   origin: 'https://rice-mart.vercel.app',  // Allow requests from localhost:3000 (your frontend)
+//   methods: ['GET', 'POST', 'PUT', 'DELETE'],
+//   allowedHeaders: ['Content-Type', 'Authorization']
+// }));
+
+app.use(cors());
 
 // API Routes
 app.use('/api', orderRoutes);         // Assuming orderRoutes handles things like /api/orders
